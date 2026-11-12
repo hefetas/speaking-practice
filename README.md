@@ -1,17 +1,40 @@
-# İngilizce Speaking Pratik
+# Konuş – İngilizce Speaking Pratik
 
-Her gün değişen içerik ve her girişte farklı bir konuşma testi sunan, ücretsiz ve sunucusuz bir İngilizce konuşma pratiği sitesi.
-
-- Canlı site: GitHub Pages (kök dizindeki `index.html`)
-- Konuşma tanıma: Chrome / Edge (Web Speech API). Desteklenmeyen tarayıcılarda yazarak cevap verilir.
-- Ses kaydı saklanmaz, cihazdan çıkmaz.
+Ücretsiz, hesapsız, sunucusuz bir konuşma pratiği sitesi. Her gün yeni bir konu, her ziyarette farklı bir test; arkadaşlarla link üzerinden sıralı "meydan okuma".
 
 ## Geliştirme
 
-```
-node --test tests/*.test.js   # mantık, içerik ve derleme testleri
-node build.js                 # app/ -> dist/index.html (tek dosya)
-cp dist/index.html index.html # yayın dosyası
+```bash
+node build.js                      # dist/ içine tek dosyalık index.html + PWA dosyaları
+node --test tests/*.test.js        # birim + build testleri (klasör değil, glob!)
+node tests/e2e-check.js            # tarayıcı testi (Playwright + Chrome, ~7 dk)
 ```
 
-İçerik `app/content.js` içindeki `DAILY` listesinde (60 gün, sonra başa sarar).
+`app/` kaynak, `dist/` çıktı. GitHub Pages kökten yayın yapar: yayın için `dist/*` dosyalarını (index.html, manifest.webmanifest, sw.js, icon-*.png) repo köküne kopyalayın.
+
+## Mimari (kısa)
+
+- Tek HTML dosyası (CSS+JS içeride), sunucu yok, ağ çağrısı yok (CSP `connect-src 'none'`).
+- İlerleme yalnızca `localStorage`'da. Onay verilmeden hiçbir şey yazılmaz.
+- Meydan okuma: sonuçlar (takma ad + sayılar) URL `#c=` parçasında taşınır; metin/ses asla linke girmez. Link girdileri `challenge.js` içinde doğrulanır, ekrana `esc()` ile basılır.
+- Yedek kodu: `backup.js` (checksum + beyaz liste doğrulaması).
+- Dil: `i18n.js` (TR/EN, anahtar eşitliği testle korunur). Hukuki metinler: `legal.js`.
+
+## Yayın öncesi kontrol listesi (halka açılmadan önce)
+
+Şu an site **noindex** (arama motorlarına kapalı). Halka açmak için:
+
+1. `app/config.json` içinde `operator` ve `contact` alanlarını doldurun (gizlilik/şartlar metinleri bunları kullanır).
+2. Hukuki metinleri (`app/legal.js`) bir hukukçuya okutun; bunlar taslaktır. KVKK kapsamında veri sorumlusu bilgisi ve iletişim adresi gerçek olmalı.
+3. Kendi alan adınızı bağlayın (reklam ağları `github.io` adreslerini genelde kabul etmez).
+4. `LAUNCH=1 node build.js` ile derleyin (robots → `index,follow`, taslak uyarısı kalkar). `og:image` ve `canonical` için mutlak adres eklemek gerekir.
+5. Reklam eklenecekse: gizlilik metnini güncelleyin, çerez/rıza kategorisi ekleyin, CSP'ye reklam ağı alanlarını ekleyin, `ads.txt` ekleyin, onay gelmeden kod koymayın.
+6. İsteğe bağlı sayaç: çerezsiz bir servis (ör. GoatCounter) eklenirse gizlilik metni ve CSP güncellenmeli.
+7. `consentVersion` değerini (config.json) metinler önemli ölçüde değişince artırın; kullanıcılardan yeniden onay istenir.
+
+## Hukuki / güvenlik notları
+
+- IELTS tescilli bir markadır; site "IELTS tarzı" ifadesini kullanır ve bağlantılı olmadığını belirtir.
+- Konuşma tanıma tarayıcıdan gelir (Chrome/Edge sesi sağlayıcının sunucusuna gönderebilir); onay ekranı ve gizlilik metni bunu açıkça söyler.
+- "Verilerimi sil" düğmesi tüm yerel veriyi siler (KVKK md. 11 uyumu).
+- Hiçbir ekran girdi/link içeriğini `innerHTML` ile ham basmaz; test: `tests/e2e-check.js` #12.

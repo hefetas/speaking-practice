@@ -278,3 +278,58 @@ body.in-flow #app { padding-bottom: 40px; }
 .audio { width: 100%; margin-top: 8px; }
 .rcount { color: var(--muted); font-weight: 700; margin: 0; }
 .rapid-prompt { font-size: 24px; font-weight: 800; margin: 6px 0 0; }
+
+/* ---- v4 additions ---- */
+body.no-tabs .tabs { display: none; }
+body.no-tabs #app, body.in-flow #app { padding-bottom: 40px; }
+body.in-flow .flinks, body.no-tabs .flinks { display: none; }
+.flinks { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; margin: 6px 0 90px; }
+.flinks button { background: none; border: 0; box-shadow: none; color: var(--muted); font-size: 13px; min-height: 44px; padding: 0 6px; text-decoration: underline; cursor: pointer; font-weight: 600; }
+.bullets { margin: 0; padding-left: 20px; display: grid; gap: 10px; }
+.check { display: flex; gap: 12px; align-items: flex-start; margin: 16px 0 10px; font-size: 15px; line-height: 1.45; cursor: pointer; }
+.check input { width: 24px; height: 24px; margin-top: 2px; flex: none; accent-color: var(--indigo); }
+.alert-soft { background: #ffe7e2; color: #8a2c1f; padding: 10px 14px; border-radius: 14px; font-weight: 600; margin: 8px 0; }
+.legal-row { margin-top: 4px; }
+.card.legal h2 { text-transform: none; letter-spacing: 0; font-size: 16px; }
+.card.legal p { margin: 0 0 8px; line-height: 1.55; }
+.field { display: grid; gap: 6px; margin: 4px 0 8px; }
+.field > span { font-weight: 700; font-size: 14px; }
+.field small { color: var(--muted); font-size: 12.5px; }
+.field input { font: inherit; padding: 12px 14px; min-height: 48px; border-radius: 14px; border: 2px solid var(--line, #e8dccf); background: var(--card, #fff); color: inherit; }
+.field input:focus-visible { outline: 3px solid var(--indigo); outline-offset: 2px; }
+textarea.code { width: 100%; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; margin-top: 10px; min-height: 84px; }
+.card.danger { border-color: #f1b8ae; }
+.dangerbtn { background: #d6402c; color: #fff; border: 0; border-radius: 14px; min-height: 48px; font-weight: 800; padding: 0 16px; }
+.standings { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.standings li { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; background: rgba(75, 79, 191, .08); }
+.standings li.me { background: #ffe8b8; color: #4a3200; }
+.standings .rk { font-weight: 800; font-size: 18px; text-align: center; }
+.standings .nm { font-weight: 700; overflow-wrap: anywhere; }
+.standings .sc { font-weight: 800; }
+.standings small { grid-column: 2 / 4; color: var(--muted); font-size: 12.5px; }
+.standings li.me small { color: #6b5320; }
+.scene { font-size: 56px; text-align: center; margin: 12px 0 4px; line-height: 1.2; letter-spacing: 4px; }
+.tips { margin: 6px 0 8px; padding: 0; list-style: none; display: grid; gap: 10px; }
+.tips li { display: grid; gap: 2px; }
+.tips .bad { text-decoration: line-through; color: #c4402e; font-weight: 700; }
+.tips .good { color: #1f8a5b; font-weight: 800; }
+.tips small { color: var(--muted); }
+.band .bandnum { font-size: 44px; font-weight: 900; margin: 4px 0; color: var(--indigo); }
+.vlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.vlist li { display: flex; align-items: center; gap: 8px; }
+.vlist .w { flex: 1; font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+button.mini { min-height: 44px; min-width: 44px; padding: 0 12px; font-size: 14px; }
+.card.invite p { margin: 0 0 10px; }
+button.primary.small { min-height: 48px; font-size: 15px; }
+.alert.soft { background: #e8f5ef; color: #1b5a40; }
+@media (prefers-color-scheme: dark) {
+  .alert-soft { background: #4a2420; color: #ffd6cf; }
+  .standings li { background: rgba(255, 255, 255, .08); }
+  .standings li.me { background: #5a4310; color: #ffe9b8; }
+  .standings li.me small { color: #e8cf94; }
+  .tips .bad { color: #ff8f7f; }
+  .tips .good { color: #5fd5a2; }
+  .card.danger { border-color: #7a3a32; }
+  .alert.soft { background: #1d3a2e; color: #bdeed6; }
+}
+.pill:empty { display: none; }

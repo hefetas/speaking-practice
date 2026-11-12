@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const C = require('../app/content.js');
 
-const IDS = ['free', 'describe', 'opinion', 'story', 'targets', 'roleplay', 'repeat', 'rapid', 'shadow'];
+const IDS = ['free', 'describe', 'opinion', 'story', 'targets', 'roleplay', 'repeat', 'rapid', 'shadow', 'twister', 'pitch', 'scene', 'pairs'];
 
 test('LEVELS are easy, medium, hard', () => {
   assert.deepStrictEqual(C.LEVELS, ['easy', 'medium', 'hard']);
@@ -26,7 +26,7 @@ test('daily themes are unique', () => {
   assert.strictEqual(new Set(C.DAILY.map(d => d.theme.toLowerCase())).size, 180);
 });
 
-test('TESTS has the 9 daily test ids in any order', () => {
+test('TESTS has the 13 daily test ids in any order', () => {
   assert.deepStrictEqual(C.TESTS.map(t => t.id).sort(), [...IDS].sort());
   C.TESTS.forEach(t => assert.ok(t.titleTr));
 });
@@ -116,4 +116,40 @@ test('IELTS tests build parts 1, 2 and 3 with the right timing', () => {
       [p1, p2, p3].forEach(p => assert.ok(p.hintTr.length > 5));
     });
   });
+});
+
+test('practice bank: enough unique twisters, pitches, scenes and minimal-pair drills', () => {
+  const B = require('../app/practice-bank.js');
+  assert.ok(B.TWISTERS.length >= 16 && new Set(B.TWISTERS).size === B.TWISTERS.length);
+  assert.ok(B.PITCHES.length >= 12);
+  B.PITCHES.forEach(p => { assert.ok(p.prompt.length > 20); assert.strictEqual(p.points.length, 3); });
+  assert.ok(B.SCENES.length >= 12);
+  B.SCENES.forEach(s => assert.ok(s.emoji.length >= 4 && s.title));
+  assert.ok(B.PAIRS.length >= 12);
+  B.PAIRS.forEach(p => assert.ok(p.split(/\s+/).length >= 6));
+});
+
+test('new tests are deterministic for a seed and vary across seeds', () => {
+  ['twister', 'pitch', 'scene', 'pairs'].forEach(id => {
+    const t = C.TESTS.find(x => x.id === id);
+    const d = C.DAILY[0];
+    const a = t.build(d, 'medium', { i: 7, j: 2 });
+    assert.deepStrictEqual(a, t.build(d, 'medium', { i: 7, j: 2 }), id + ' not deterministic');
+    const seen = new Set();
+    for (let i = 0; i < 40; i++) seen.add(JSON.stringify(t.build(d, 'medium', { i: i, j: 0 })));
+    assert.ok(seen.size >= 8, id + ' variety ' + seen.size);
+    assert.ok(a.promptEn && a.hintTr && a.seconds > 0);
+  });
+});
+
+test('twister and pairs expose a static passage (no highlight pace); scene exposes emoji', () => {
+  const d = C.DAILY[4];
+  const tw = C.TESTS.find(x => x.id === 'twister').build(d, 'easy', { i: 1, j: 0 });
+  assert.ok(tw.passage && tw.passageWpm === undefined && tw.scoreCoverage);
+  const pr = C.TESTS.find(x => x.id === 'pairs').build(d, 'easy', { i: 1, j: 0 });
+  assert.ok(pr.passage && pr.passageWpm === undefined && pr.scoreCoverage);
+  const sc = C.TESTS.find(x => x.id === 'scene').build(d, 'easy', { i: 1, j: 0 });
+  assert.ok(sc.scene && sc.scene.length >= 4);
+  const pi = C.TESTS.find(x => x.id === 'pitch').build(d, 'hard', { i: 1, j: 0 });
+  assert.ok(pi.points.length === 3 && pi.seconds === 90);
 });

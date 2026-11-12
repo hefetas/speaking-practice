@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; connect-src 'none'; manifest-src 'self'; worker-src 'self'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="<!--ROBOTS-->">
+<meta name="description" content="Her gün yeni bir konu, her seferinde farklı bir İngilizce konuşma testi. Ücretsiz, hesapsız. / A new topic every day and a different English speaking test on every visit. Free, no account.">
+<meta name="theme-color" content="#4b4fbf">
+<meta property="og:title" content="Konuş: İngilizce Speaking Pratik">
+<meta property="og:description" content="Her gün yeni bir konu, her seferinde farklı bir konuşma testi.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>İngilizce Speaking Pratik</title>
 <style>/*INLINE_CSS*/</style>
 </head>
@@ -14,11 +24,12 @@
     <div class="pill" id="streakPill" aria-live="polite"></div>
   </header>
   <main id="screen" aria-live="polite"></main>
-  <p class="foot">Konuşman cihazından çıkmaz. Kayıt saklanmaz.</p>
+  <p class="foot" id="foot"></p>
+  <nav class="flinks" id="flinks" aria-label="Info"></nav>
 </div>
-<nav class="tabs" id="tabs" aria-label="Ana menü">
-  <button data-tab="today" class="tab on"><span class="tab-ico">☀️</span><span>Bugün</span></button>
-  <button data-tab="progress" class="tab"><span class="tab-ico">📈</span><span>İlerleme</span></button>
+<nav class="tabs" id="tabs">
+  <button data-tab="today" class="tab on"><span class="tab-ico">☀️</span><span id="tabToday">Bugün</span></button>
+  <button data-tab="progress" class="tab"><span class="tab-ico">📈</span><span id="tabProg">İlerleme</span></button>
 </nav>
 <script>/*INLINE_JS*/</script>
 </body>

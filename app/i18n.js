@@ -1,0 +1,302 @@
+(function (root) {
+  'use strict';
+
+  // [key, Turkish, English]
+  var ROWS = [
+    ['foot', 'Verilerin cihazında saklanır. Konuşma tanıma tarayıcın tarafından yapılır.', 'Your data stays on your device. Speech recognition is done by your browser.'],
+    ['tab_today', 'Bugün', 'Today'],
+    ['tab_progress', 'İlerleme', 'Progress'],
+    ['tabs_label', 'Ana menü', 'Main menu'],
+    ['link_privacy', 'Gizlilik', 'Privacy'],
+    ['link_terms', 'Şartlar', 'Terms'],
+    ['link_about', 'Hakkında', 'About'],
+    ['lang_other', 'English', 'Türkçe'],
+    ['legal_back', 'Geri', 'Back'],
+    ['legal_updated', 'Son güncelleme: {d}', 'Last updated: {d}'],
+    ['legal_title_privacy', 'Gizlilik Politikası ve KVKK Aydınlatma Metni', 'Privacy Policy and KVKK Notice'],
+    ['legal_title_terms', 'Kullanım Koşulları', 'Terms of Use'],
+    ['legal_title_about', 'Hakkında', 'About'],
+    ['legal_missing', '[yayın öncesi eklenecek]', '[to be added before launch]'],
+    ['legal_draft', 'Taslak metin: halka açılmadan önce bir hukukçu tarafından gözden geçirilmelidir.', 'Draft text: it should be reviewed by a lawyer before a public launch.'],
+
+    ['consent_title', 'Başlamadan önce', 'Before you start'],
+    ['consent_intro', 'Konuş ücretsiz bir konuşma pratiği sitesidir. Şunları bilmeni isteriz:', 'Konuş is a free speaking-practice site. Here is what you should know:'],
+    ['consent_b1', 'Hesap yok. İlerlemen yalnızca bu cihazın tarayıcısında saklanır.', 'No accounts. Your progress is stored only in this device’s browser.'],
+    ['consent_b2', 'Konuşma tanıma tarayıcın tarafından yapılır. Chrome ve Edge’de ses, metne çevrilmek için tarayıcı sağlayıcısının (Google, Microsoft vb.) sunucularına gönderilebilir. İstersen cevabını yazarak verebilirsin.', 'Speech recognition is done by your browser. In Chrome and Edge, audio may be sent to the browser vendor’s servers (Google, Microsoft, etc.) to be converted to text. You can type your answers instead.'],
+    ['consent_b3', 'Arkadaşlarınla oynarsan linkte yalnızca takma adın ve sayısal sonuçların olur; ses ve metin paylaşılmaz.', 'If you play with friends, the link contains only your nickname and numeric results; no audio or text is shared.'],
+    ['consent_b4', 'Analizler ve seviye tahminleri resmi değildir. IELTS tescilli bir markadır; site onunla bağlantılı değildir.', 'Analyses and level estimates are unofficial. IELTS is a registered trademark; this site is not affiliated with it.'],
+    ['consent_check', 'Gizlilik Politikası’nı ve Kullanım Koşulları’nı okudum. 18 yaşından büyüğüm veya ebeveyn/vasi onayım var ve 13 yaşından küçük değilim.', 'I have read the Privacy Policy and Terms of Use. I am over 18, or I have a parent’s/guardian’s consent, and I am not under 13.'],
+    ['consent_accept', 'Kabul et ve başla', 'Accept and start'],
+    ['consent_decline', 'Kabul etmiyorum', 'I do not accept'],
+    ['consent_need', 'Devam etmek için kutuyu işaretlemelisin.', 'Please tick the box to continue.'],
+    ['consent_declined_title', 'Anlaşıldı', 'Understood'],
+    ['consent_declined_msg', 'Kabul etmeden siteyi kullanamazsın. Fikrini değiştirirsen aşağıdan geri dönebilirsin. Hiçbir veri kaydedilmedi.', 'You cannot use the site without accepting. If you change your mind you can go back below. No data has been saved.'],
+    ['consent_back', 'Geri dön', 'Go back'],
+
+    ['eyebrow_today', 'Günün konusu · {d}', 'Topic of the day · {d}'],
+    ['eyebrow_exam', 'Sınav modu', 'Exam mode'],
+    ['hero_start', 'Bugünkü testi başlat', 'Start today’s test'],
+    ['ielts_title', 'IELTS tarzı Speaking', 'IELTS-style Speaking'],
+    ['ielts_sub', 'Part 1, 2 ve 3 tarzı sorular · her seferinde farklı kart', 'Part 1, 2 and 3 style questions · a different card every time'],
+    ['ielts_start', 'Sınav tarzı testi başlat', 'Start an exam-style test'],
+    ['mode_label', 'Mod', 'Mode'],
+    ['mode_daily', 'Günlük pratik', 'Daily practice'],
+    ['mode_ielts', 'IELTS tarzı', 'IELTS-style'],
+    ['notice_nosr', 'Tarayıcın konuşma tanımayı desteklemiyor. Chrome veya Edge ile konuşarak pratik yapabilirsin. Şimdilik cevabını yazarak verebilirsin.', 'Your browser does not support speech recognition. Use Chrome or Edge to practice by speaking. For now you can type your answer.'],
+    ['goal_title', 'Günlük hedef', 'Daily goal'],
+    ['goal_aria', 'Günlük hedef {a}/{b}', 'Daily goal {a}/{b}'],
+    ['goal_done', 'Hedef tamam! 🎉', 'Goal complete! 🎉'],
+    ['home_goal_left', '{n} test daha yap', '{n} more test(s) to go'],
+    ['rank_title', 'Rütben', 'Your rank'],
+    ['rank_next', 'Sonraki rütbe: {r} · {n} XP kaldı', 'Next rank: {r} · {n} XP to go'],
+    ['rank_max', 'En yüksek rütbedesin 👑', 'You have the top rank 👑'],
+    ['chal_title', 'Haftanın görevi', 'Weekly mission'],
+    ['chal_done', 'Tamamlandı ✓ (+50 XP)', 'Done ✓ (+50 XP)'],
+    ['week_title', 'Bu hafta', 'This week'],
+    ['words_title', 'Bugünün hedef kelimeleri', 'Today’s target words'],
+    ['level_title', 'Seviye', 'Level'],
+    ['lvl_easy', 'Kolay', 'Easy'],
+    ['lvl_medium', 'Orta', 'Medium'],
+    ['lvl_hard', 'Zor', 'Hard'],
+    ['invite_title', 'Arkadaşlarınla oyna', 'Play with friends'],
+    ['invite_sub', 'Aynı konuyu sırayla konuşun, sonuçları kıyaslayın. Hesap gerekmez.', 'Take turns on the same topic and compare results. No account needed.'],
+    ['invite_btn', 'Bugünün grup testi için link oluştur', 'Create a link for today’s group test'],
+    ['vocab_card_title', 'Kelime defterin', 'Your word notebook'],
+    ['vocab_card_count', '{n} kelime tekrar bekliyor', '{n} word(s) waiting for review'],
+    ['vocab_open', 'Aç', 'Open'],
+
+    ['eyebrow_test', 'Bugünkü test', 'Today’s test'],
+    ['eyebrow_ielts', 'IELTS tarzı Speaking', 'IELTS-style Speaking'],
+    ['meta_sec', '{n} sn', '{n} sec'],
+    ['meta_prep', ' · {n} sn hazırlık', ' · {n} sec prep'],
+    ['audio_toggle', '🎧 Sesimi kaydet ve geri dinle', '🎧 Record my voice and play it back'],
+    ['audio_exp', '(deneysel, cihazda kalır)', '(experimental, stays on device)'],
+    ['btn_start', 'Başla', 'Start'],
+    ['btn_other', 'Başka test', 'Another test'],
+    ['btn_back', 'Geri', 'Back'],
+    ['get_ready', 'Hazır ol', 'Get ready'],
+    ['prep_title', 'Hazırlık', 'Preparation'],
+    ['prep_go', 'Hazırım, konuşmaya başla', 'I am ready, start speaking'],
+    ['listen_title', 'Dinle', 'Listen'],
+    ['listen_h', 'Cümleyi dinle', 'Listen to the sentence'],
+    ['replay', '🔊 Tekrar dinle', '🔊 Listen again'],
+    ['speak_go', 'Konuşmaya başla', 'Start speaking'],
+    ['tr_placeholder', 'Konuşmaya başla, söylediklerin burada yazılır…', 'Start speaking and your words will appear here…'],
+    ['typed_placeholder', 'Cevabını İngilizce yaz…', 'Type your answer in English…'],
+    ['typed_label', 'Cevabın', 'Your answer'],
+    ['btn_finish', 'Bitir', 'Finish'],
+    ['mic_denied', 'Mikrofon izni verilmedi. Cevabını yazarak verebilirsin.', 'Microphone permission was not granted. You can type your answer.'],
+    ['mic_network', 'Konuşma tanıma için internet bağlantısı gerekiyor. Cevabını yazarak verebilirsin.', 'Speech recognition needs an internet connection. You can type your answer.'],
+    ['mic_unavailable', 'Mikrofon kullanılamıyor. Cevabını yazarak verebilirsin.', 'The microphone is unavailable. You can type your answer.'],
+
+    ['eyebrow_result', 'Sonuç · {t}', 'Result · {t}'],
+    ['res_good', 'Aferin, bitirdin!', 'Well done, you finished!'],
+    ['res_bad', 'Bu sefer olmadı', 'Not this time'],
+    ['res_empty', 'Hiç konuşma algılanmadı. Mikrofona biraz yaklaşıp tekrar dene; istersen cevabını yazarak da verebilirsin.', 'No speech was detected. Move a bit closer to the microphone and try again, or type your answer.'],
+    ['xp_plus', '+{n} XP', '+{n} XP'],
+    ['rankup', '🎖️ Yeni rütbe: {r}', '🎖️ New rank: {r}'],
+    ['badge_new', '{e} Yeni rozet: {b}', '{e} New badge: {b}'],
+    ['chal_complete', '⭐ Haftalık görev tamamlandı: {c} (+50 XP)', '⭐ Weekly mission complete: {c} (+50 XP)'],
+    ['freeze_used', '❄️ Bir günü kaçırdın ama seri dondurma hakkın seriyi korudu.', '❄️ You missed a day but a streak freeze kept your streak alive.'],
+    ['stat_seconds', 'saniye', 'seconds'],
+    ['stat_words', 'kelime', 'words'],
+    ['stat_wpm', 'kelime/dk', 'words/min'],
+    ['analysis_title', 'Konuşma analizi', 'Speech analysis'],
+    ['an_unique', 'Farklı kelime', 'Unique words'],
+    ['an_fillers', 'Dolgu ifadeler', 'Filler phrases'],
+    ['an_none', 'Yok 👏', 'None 👏'],
+    ['an_repeated', 'Sık tekrar eden', 'Often repeated'],
+    ['an_pace', 'Tempo', 'Pace'],
+    ['an_cov', 'Okuma doğruluğu', 'Reading accuracy'],
+    ['an_note', 'Konuşma tanıma “um”, “uh” gibi sesleri bazen yazıya dökmez; sonuçlar yaklaşıktır.', 'Speech recognition sometimes drops sounds like “um” and “uh”; results are approximate.'],
+    ['pace_slow', 'Biraz yavaş', 'A little slow'],
+    ['pace_natural', 'Doğal tempo', 'Natural pace'],
+    ['pace_fast', 'Hızlı', 'Fast'],
+    ['cmp_title', 'Geçen denemeyle kıyas', 'Compared with last attempt'],
+    ['cmp_first', 'İlk denemen! Aynı testi bir daha yaptığında burada farkı göreceksin.', 'Your first attempt! Do this test again and you will see the difference here.'],
+    ['cmp_words', 'kelime', 'words'],
+    ['cmp_unique', 'farklı kelime', 'unique words'],
+    ['cmp_wpm', 'kelime/dk', 'words/min'],
+    ['hits_title', 'Hedef kelimeler ({a}/{b})', 'Target words ({a}/{b})'],
+    ['heard', 'Duyduğumuz', 'What we heard'],
+    ['typed_h', 'Yazdığın', 'What you typed'],
+    ['tips_title', 'Gramer ipuçları', 'Grammar tips'],
+    ['tips_note', 'Basit kurallara dayanır; her zaman doğru olmayabilir.', 'Based on simple rules; not always right.'],
+    ['band_title', 'Tahmini seviye', 'Estimated level'],
+    ['band_note', 'Yalnızca akıcılık ve kelime çeşitliliğine bakan kaba bir tahmindir; dilbilgisi ve telaffuz ölçülmez. Resmi değildir.', 'A rough estimate based only on fluency and vocabulary variety; grammar and pronunciation are not measured. Unofficial.'],
+    ['vocab_saved', '📒 {n} kelime defterine eklendi', '📒 {n} word(s) added to your notebook'],
+    ['share_title', 'Paylaş', 'Share'],
+    ['btn_share', '📤 Paylaş', '📤 Share'],
+    ['btn_dl', '🖼️ Resmi indir', '🖼️ Download image'],
+    ['btn_copy', '📋 Metni kopyala', '📋 Copy text'],
+    ['share_copied', 'Metin kopyalandı ✓', 'Text copied ✓'],
+    ['share_copy_fail', 'Kopyalanamadı. Metni elle seçip kopyalayabilirsin: {t}', 'Could not copy. Select and copy it by hand: {t}'],
+    ['share_img_fail', 'Resim oluşturulamadı.', 'Could not create the image.'],
+    ['share_dl_ok', 'Resim indirildi ✓', 'Image downloaded ✓'],
+    ['share_dl_fail', 'Bu ortamda indirme çalışmıyor. Metni kopyalamayı dene.', 'Downloads do not work here. Try copying the text.'],
+    ['share_unsupported', 'Bu tarayıcı paylaşımı desteklemiyor. Resmi indirebilir veya metni kopyalayabilirsin.', 'This browser does not support sharing. Download the image or copy the text.'],
+    ['share_card_title', 'kelime konuştum', 'words spoken'],
+    ['share_card_wpm', 'kelime/dk', 'words/min'],
+    ['share_card_streak', 'gün seri', 'day streak'],
+    ['share_card_rank', 'rütbe', 'rank'],
+    ['share_card_sub', 'İngilizce Speaking Pratik', 'English Speaking Practice'],
+    ['share_text', 'Bugün İngilizce konuşma pratiğinde {w} kelime konuştum 🎙️ Serim: {s} gün. Sen de dene: {u}', 'I spoke {w} words in my English speaking practice today 🎙️ Streak: {s} days. Try it: {u}'],
+    ['btn_again', 'Tekrar dene', 'Try again'],
+    ['btn_next', 'Başka test', 'Another test'],
+    ['btn_home', 'Ana sayfa', 'Home'],
+
+    ['ch_invite_title', 'Arkadaşını meydan oku', 'Challenge a friend'],
+    ['ch_invite_sub', 'Aynı konu ve aynı testle sırayla konuşun. Sıralama linkin içinde taşınır.', 'Take turns on the same topic and test. The ranking travels inside the link.'],
+    ['ch_nick_label', 'Takma adın', 'Your nickname'],
+    ['ch_nick_ph', 'ör. Efe', 'e.g. Sam'],
+    ['ch_nick_help', 'Sıralamada ve linkte görünür. Gerçek adını yazmak zorunda değilsin.', 'Shown in the ranking and in the link. You do not have to use your real name.'],
+    ['ch_make_link', '📤 Linki gönder', '📤 Send the link'],
+    ['ch_copy_link', '🔗 Linki kopyala', '🔗 Copy link'],
+    ['ch_link_copied', 'Link kopyalandı ✓', 'Link copied ✓'],
+    ['ch_privacy_note', 'Linkte yalnızca takma adın ve sayısal sonuçların olur; sesin veya yazdığın metin paylaşılmaz.', 'The link contains only your nickname and numeric results; your audio and text are not shared.'],
+    ['ch_fun_note', 'Sonuçlar kullanıcı beyanıdır; sıralama eğlence amaçlıdır.', 'Results are self-reported; the ranking is just for fun.'],
+    ['ch_intro_title', 'Meydan okuma geldi!', 'You have been challenged!'],
+    ['ch_topic', 'Konu', 'Topic'],
+    ['ch_test', 'Test', 'Test'],
+    ['ch_standings', 'Sıralama', 'Standings'],
+    ['ch_nobody', 'Henüz kimse konuşmadı. İlk sen ol!', 'Nobody has spoken yet. Be the first!'],
+    ['ch_start', 'Meydan okumayı kabul et', 'Accept the challenge'],
+    ['ch_skip', 'Kendi testime geç', 'Go to my own test'],
+    ['ch_invalid', 'Bu meydan okuma linki geçersiz veya bozuk.', 'This challenge link is invalid or broken.'],
+    ['ch_score', 'puan', 'pts'],
+    ['ch_your_round', 'Sonucun kaydedildi. Sıradaki kişiye linki gönder.', 'Your result is recorded. Send the link to the next person.'],
+    ['ch_text_invite', 'Gel İngilizce konuşalım! Konu: {t}. Sırayla konuşup sonuçları kıyaslayalım: {u}', 'Let’s practice English! Topic: {t}. Take turns and compare results: {u}'],
+    ['ch_text_result', 'Meydan okumada {w} kelime konuştum (sıralamada {r}.). Sıra sende: {u}', 'I spoke {w} words in our challenge (rank {r}). Your turn: {u}'],
+    ['ch_group_title', 'Grup sıralaması', 'Group standings'],
+
+    ['vocab_h', 'Kelime defteri', 'Word notebook'],
+    ['vocab_hint', 'Testlerde kullanamadığın hedef kelimeler burada toplanır. Telaffuzunu dinle, bir cümle kur, öğrenince sil.', 'Target words you did not use end up here. Listen to the pronunciation, make a sentence, and remove it when learned.'],
+    ['vocab_empty', 'Defterin boş. Hedef kelimeli bir test yaptığında kullanamadıkların buraya eklenir.', 'Your notebook is empty. Words you miss in target-word tests are added here.'],
+    ['vocab_say', 'Dinle', 'Listen'],
+    ['vocab_done', 'Öğrendim', 'Learned'],
+    ['vocab_drill', 'Bu kelimelerle hız turu', 'Speed round with these words'],
+
+    ['prog_title', 'İlerleme', 'Progress'],
+    ['prog_sub', 'Küçük adımlar, büyük fark.', 'Small steps, big difference.'],
+    ['stat_streak', 'gün seri', 'day streak'],
+    ['stat_tests', 'tamamlanan test', 'tests done'],
+    ['stat_wordsum', 'söylenen kelime', 'words spoken'],
+    ['stat_xp', 'toplam XP', 'total XP'],
+    ['freeze_info', '❄️ Seri dondurma hakkın: {n} · Her 7 günlük seride 1 hak kazanırsın (en fazla 2). Bir gün kaçırırsan otomatik kullanılır.', '❄️ Streak freezes: {n} · You earn 1 for every 7-day streak (max 2). It is used automatically if you miss a day.'],
+    ['passport_title', 'Konuşma pasaportu ({n}/{m})', 'Speaking passport ({n}/{m})'],
+    ['badges_title', 'Rozetler', 'Badges'],
+    ['profile_title', 'Profil', 'Profile'],
+    ['nick_save', 'Kaydet', 'Save'],
+    ['nick_saved', 'Kaydedildi ✓', 'Saved ✓'],
+    ['remind_title', 'Günlük hatırlatma', 'Daily reminder'],
+    ['remind_help', 'Saat seç; takvim uygulamana her gün tekrarlanan bir hatırlatma ekleyecek bir dosya indirir.', 'Pick a time; this downloads a file that adds a daily repeating reminder to your calendar app.'],
+    ['remind_btn', '⏰ Takvime ekle (.ics)', '⏰ Add to calendar (.ics)'],
+    ['remind_summary', 'Konuş: günlük İngilizce konuşma pratiği', 'Konuş: daily English speaking practice'],
+    ['remind_ok', 'Hatırlatma dosyası indirildi ✓', 'Reminder file downloaded ✓'],
+    ['remind_fail', 'Bu ortamda indirme çalışmıyor.', 'Downloads do not work here.'],
+    ['backup_title', 'Yedekle / geri yükle', 'Back up / restore'],
+    ['backup_help', 'Hesap olmadığı için ilerlemeni başka cihaza bir kodla taşıyabilirsin. Kodu kimseyle paylaşma; takma adını ve ilerlemeni içerir.', 'There are no accounts, so you can move your progress to another device with a code. Do not share it; it contains your nickname and progress.'],
+    ['backup_make', 'Yedek kodu oluştur', 'Create backup code'],
+    ['backup_copy', 'Kodu kopyala', 'Copy code'],
+    ['backup_copied', 'Kod kopyalandı ✓', 'Code copied ✓'],
+    ['backup_ph', 'Yedek kodunu buraya yapıştır…', 'Paste your backup code here…'],
+    ['backup_restore', 'Geri yükle', 'Restore'],
+    ['backup_ok', 'İlerlemen geri yüklendi ✓', 'Your progress was restored ✓'],
+    ['backup_bad', 'Kod geçersiz veya bozuk.', 'The code is invalid or damaged.'],
+    ['delete_title', 'Verilerimi sil', 'Delete my data'],
+    ['delete_help', 'Bu cihazdaki tüm ilerlemeni, takma adını ve ayarlarını siler. Geri alınamaz.', 'Deletes all progress, your nickname and settings on this device. This cannot be undone.'],
+    ['delete_btn', 'Verilerimi sil', 'Delete my data'],
+    ['delete_confirm', 'Emin misin? Bu işlem geri alınamaz.', 'Are you sure? This cannot be undone.'],
+    ['delete_yes', 'Evet, hepsini sil', 'Yes, delete everything'],
+    ['delete_cancel', 'Vazgeç', 'Cancel'],
+    ['delete_done', 'Tüm verilerin silindi.', 'All your data has been deleted.'],
+
+    ['day0', 'Pzt', 'Mon'], ['day1', 'Sal', 'Tue'], ['day2', 'Çar', 'Wed'], ['day3', 'Per', 'Thu'],
+    ['day4', 'Cum', 'Fri'], ['day5', 'Cmt', 'Sat'], ['day6', 'Paz', 'Sun'],
+    ['pill_aria', '{n} günlük seri', '{n} day streak'],
+    ['pill_aria_freeze', '{n} günlük seri, {f} seri dondurma hakkı', '{n} day streak, {f} streak freeze(s)'],
+
+    ['rank_0', 'Sessiz', 'Quiet'], ['rank_1', 'Mırıldanan', 'Mumbler'], ['rank_2', 'Sohbetçi', 'Chatter'],
+    ['rank_3', 'Konuşkan', 'Talker'], ['rank_4', 'Hatip', 'Speaker'], ['rank_5', 'Usta Hatip', 'Master Orator'],
+
+    ['stamp_free', 'Serbest', 'Free'], ['stamp_describe', 'Betimleme', 'Describe'], ['stamp_opinion', 'Görüş', 'Opinion'],
+    ['stamp_story', 'Hikâye', 'Story'], ['stamp_targets', 'Kelimeler', 'Words'], ['stamp_roleplay', 'Rol', 'Role-play'],
+    ['stamp_repeat', 'Tekrar', 'Repeat'], ['stamp_rapid', 'Hız', 'Rapid'], ['stamp_shadow', 'Gölge', 'Shadow'],
+    ['stamp_twister', 'Dönme', 'Twister'], ['stamp_pitch', 'Tanıtım', 'Pitch'], ['stamp_scene', 'Sahne', 'Scene'], ['stamp_pairs', 'Çiftler', 'Pairs'],
+
+    ['badge_first_t', 'İlk Söz', 'First Words'], ['badge_first_d', 'İlk testini bitir', 'Finish your first test'],
+    ['badge_streak3_t', '3 Günlük Seri', '3-Day Streak'], ['badge_streak3_d', '3 gün üst üste pratik yap', 'Practice 3 days in a row'],
+    ['badge_streak7_t', 'Haftalık Seri', 'Weekly Streak'], ['badge_streak7_d', '7 gün üst üste pratik yap', 'Practice 7 days in a row'],
+    ['badge_words100_t', '100 Kelime', '100 Words'], ['badge_words100_d', 'Toplam 100 kelime konuş', 'Speak 100 words in total'],
+    ['badge_words500_t', '500 Kelime', '500 Words'], ['badge_words500_d', 'Toplam 500 kelime konuş', 'Speak 500 words in total'],
+    ['badge_passport_t', 'Tam Pasaport', 'Full Passport'], ['badge_passport_d', 'Tüm test türlerini dene', 'Try every test type'],
+    ['badge_ielts_t', 'Sınav Denemesi', 'Exam Practice'], ['badge_ielts_d', 'Bir IELTS tarzı test bitir', 'Finish an IELTS-style test'],
+    ['badge_rapid_t', 'Hız Ustası', 'Speed Master'], ['badge_rapid_d', 'Bir hız turu bitir', 'Finish a speed round'],
+    ['badge_shadow_t', 'Gölge Okuyucu', 'Shadow Reader'], ['badge_shadow_d', 'Bir gölgeleme testi bitir', 'Finish a shadowing test'],
+    ['badge_week_t', 'Haftanın Yıldızı', 'Star of the Week'], ['badge_week_d', 'Bir haftalık görevi tamamla', 'Complete a weekly mission'],
+
+    ['chal_types3', '3 farklı test türünü dene', 'Try 3 different test types'],
+    ['chal_words150', 'Bu hafta toplam 150 kelime konuş', 'Speak 150 words this week'],
+    ['chal_days4', '4 farklı günde pratik yap', 'Practice on 4 different days'],
+    ['chal_rapid2', 'Hız turunu 2 kez bitir', 'Finish the speed round twice'],
+    ['chal_tests6', 'Bu hafta 6 test bitir', 'Finish 6 tests this week']
+  ];
+
+  var tr = {};
+  var en = {};
+  ROWS.forEach(function (r) { tr[r[0]] = r[1]; en[r[0]] = r[2]; });
+
+  var EN_TESTS = {
+    free: ['Free speaking', 'Back up your answer with an example and link ideas with “because”.'],
+    describe: ['Describe the scene', 'Describe what you see in order: the big picture first, then the details.'],
+    opinion: ['Agree or disagree', 'State your opinion first (I agree / I disagree), then give your reasons.'],
+    story: ['Finish the story', 'Who, where, what happened, how did it end? Use the past tense.'],
+    targets: ['Use the target words', 'Try to use every word in a sentence. You will see which ones you used.'],
+    roleplay: ['Role-play', 'Speak as if you are really chatting, and ask a question back at the end.'],
+    repeat: ['Listen and repeat', 'Listen, repeat it exactly, then continue with your own answer.'],
+    rapid: ['Speed round', 'Make one sentence for each word; if you get stuck, move on right away.'],
+    shadow: ['Shadowing (read at pace)', 'Read aloud and follow the highlighted word; keep up with the pace.'],
+    twister: ['Tongue twister', 'Slow and clear first, then faster. Clear pronunciation matters more than speed.'],
+    pitch: ['One-minute pitch', 'Think of an interview: a short opening, the three points in order, a strong close.'],
+    scene: ['Tell the scene', 'Build a story from the emojis: who, where, what happened, what happens next?'],
+    pairs: ['Sound pairs', 'Speech recognition writes the word it hears; mispronounce it and a different word appears. Make the difference clear.'],
+    ielts1: ['IELTS-style Part 1', 'Part 1: answer naturally in 2-3 sentences and add an example.'],
+    ielts2: ['IELTS-style Part 2', 'Part 2: prepare for 30 seconds, then speak for 1-2 minutes covering each point.'],
+    ielts3: ['IELTS-style Part 3', 'Part 3: give your opinion, explain why and add a general example.']
+  };
+
+  function getContent() {
+    return (typeof module !== 'undefined' && module.exports && typeof require === 'function') ? require('./content.js') : root.Content;
+  }
+  function findTest(id) {
+    var C = getContent();
+    var all = C.TESTS.concat(C.IELTS_TESTS);
+    for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
+    return null;
+  }
+
+  function testTitle(lang, id) {
+    if (lang === 'en') return EN_TESTS[id] ? EN_TESTS[id][0] : '';
+    var t = findTest(id);
+    return t ? t.titleTr.replace('IELTS ', 'IELTS tarzı ') : '';
+  }
+  function testHint(lang, id) {
+    if (lang === 'en') return EN_TESTS[id] ? EN_TESTS[id][1] : '';
+    var t = findTest(id);
+    if (!t) return '';
+    var d = getContent().DAILY[0];
+    var b = t.build(d, 'medium', { card: getContent().IELTS[0], i: 0, j: 0 });
+    return b.hintTr;
+  }
+
+  function t(lang, key, vars) {
+    var table = lang === 'en' ? en : tr;
+    var s = Object.prototype.hasOwnProperty.call(table, key) ? table[key] : (Object.prototype.hasOwnProperty.call(tr, key) ? tr[key] : key);
+    if (vars) s = s.replace(/\{(\w+)\}/g, function (m, k) { return Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : m; });
+    return s;
+  }
+
+  var api = { tr: tr, en: en, t: t, testTitle: testTitle, testHint: testHint };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.I18N = api;
+})(typeof window !== 'undefined' ? window : globalThis);

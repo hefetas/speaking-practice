@@ -71,11 +71,11 @@ test('badgesFor: nothing earned at the start, first word badge after one test', 
   const b = P.badgesFor({ ...base, done: 1 });
   assert.ok(b.find(x => x.id === 'first').earned);
 });
-test('badgesFor: passport needs all nine daily test types', () => {
-  const base = { done: 9, words: 50, bestStreak: 1, stamps: P.PASSPORT_IDS.slice(0, 8), weeksDone: 0 };
+test('badgesFor: passport needs every daily test type', () => {
+  const base = { done: 13, words: 50, bestStreak: 1, stamps: P.PASSPORT_IDS.slice(0, P.PASSPORT_IDS.length - 1), weeksDone: 0 };
   assert.ok(!P.badgesFor(base).find(x => x.id === 'passport').earned);
   assert.ok(P.badgesFor({ ...base, stamps: P.PASSPORT_IDS }).find(x => x.id === 'passport').earned);
-  assert.strictEqual(P.PASSPORT_IDS.length, 9);
+  assert.strictEqual(P.PASSPORT_IDS.length, 13);
 });
 test('badgesFor: streak, words, ielts and weekly badges', () => {
   const s = { done: 5, words: 520, bestStreak: 7, stamps: ['ielts2'], weeksDone: 1 };

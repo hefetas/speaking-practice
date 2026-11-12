@@ -51,6 +51,13 @@
       .slice(0, 3);
   }
 
+  function paceKey(wpm) {
+    if (wpm == null || !(wpm > 0)) return null;
+    if (wpm < 90) return 'slow';
+    if (wpm <= 160) return 'natural';
+    return 'fast';
+  }
+
   function paceLabel(wpm) {
     if (wpm == null || !(wpm > 0)) return null;
     if (wpm < 90) return 'Biraz yavaş';
@@ -84,7 +91,52 @@
     return { words: u.total, unique: u.unique, ratio: u.ratio, fillers: fillers(text), repeated: repeated(text) };
   }
 
-  var api = {
+
+  // Rule-based grammar tips. Each rule matches a common learner mistake.
+  var TIPS = [
+    { id: 'amagree', re: /\bi am agree\b/i, good: 'I agree', tr: '“agree” bir fiildir; “am” ile kullanılmaz.', en: '“Agree” is a verb; do not use “am” with it.' },
+    { id: 'morebetter', re: /\bmore (better|easier|bigger|faster|cheaper|worse|good)\b/i, good: 'better / easier …', tr: 'Kısa sıfatlarda “more” kullanma; “-er” yeter (better, easier).', en: 'Do not double the comparative: use “better”, not “more better”.' },
+    { id: 'hedont', re: /\b(he|she|it) (don't|do not)\b/i, good: "he/she/it doesn't", tr: 'He/she/it ile olumsuz “doesn’t” olur.', en: 'With he/she/it the negative is “doesn’t”.' },
+    { id: 'thirds', re: /\b(he|she) (go|like|want|need|work|live|make|think|know|love|have)\b/i, good: 'he goes / she likes …', tr: 'He/she ile şimdiki zamanda fiile -s/-es eklenir.', en: 'Add -s/-es to the verb after he/she in the present simple.' },
+    { id: 'didntpast', re: /\bdidn't (went|saw|ate|took|came|made|got|did|had|said|gave|found)\b/i, good: "didn't + base form", tr: '“didn’t” sonrasında fiil yalın hâlde kalır (didn’t go).', en: 'After “didn’t” use the base form (didn’t go).' },
+    { id: 'haveyears', re: /\bi have \d{1,2} years?\b(?! of| in| ago)/i, good: 'I am 20 years old', tr: 'Yaş için “I am 20 (years old)” denir, “have” değil.', en: 'Use “I am 20 (years old)”, not “I have 20 years”.' },
+    { id: 'manypeople', re: /\bmany people (is|was)\b/i, good: 'many people are', tr: '“people” çoğuldur: are / were.', en: '“People” is plural: are / were.' },
+    { id: 'peoples', re: /\bpeoples\b/i, good: 'people', tr: '“people” zaten çoğuldur, -s almaz.', en: '“People” is already plural; no -s.' },
+    { id: 'informations', re: /\b(informations|advices|furnitures|knowledges)\b/i, good: 'information / advice', tr: 'Bu kelimeler sayılamaz; çoğul yapılmaz.', en: 'These nouns are uncountable; do not add -s.' },
+    { id: 'muchpeople', re: /\bmuch (people|friends|things|books)\b/i, good: 'many people', tr: 'Sayılabilen çoğul isimlerle “many” kullan.', en: 'Use “many” with countable plural nouns.' },
+    { id: 'dependof', re: /\bdepends? of\b/i, good: 'depend on', tr: '“depend” ile edat “on” olur.', en: 'The preposition after “depend” is “on”.' },
+    { id: 'otherhand', re: /\bin the other hand\b/i, good: 'on the other hand', tr: 'Doğrusu “on the other hand”.', en: 'The correct phrase is “on the other hand”.' },
+    { id: 'boring', re: /\bi am boring\b/i, good: 'I am bored', tr: 'Sıkılan kişi “bored”, sıkan şey “boring”dir.', en: 'A person who feels it is “bored”; the thing is “boring”.' },
+    { id: 'interesting', re: /\bi am interesting (in|about)\b/i, good: 'I am interested in', tr: 'İlgilenen kişi “interested”, ilgi çeken şey “interesting”dir.', en: 'A person is “interested”; the thing is “interesting”.' },
+    { id: 'lookforward', re: /\blook(?:ing)? forward to (meet|see|hear|work)\b/i, good: 'look forward to meeting', tr: '“look forward to” sonrası fiil -ing alır.', en: '“Look forward to” is followed by -ing.' }
+  ];
+
+  function tips(text) {
+    var t = String(text || '');
+    var out = [];
+    for (var i = 0; i < TIPS.length && out.length < 3; i++) {
+      var m = TIPS[i].re.exec(t);
+      if (m) out.push({ id: TIPS[i].id, bad: m[0], good: TIPS[i].good, tr: TIPS[i].tr, en: TIPS[i].en });
+    }
+    return out;
+  }
+
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+  // Rough fluency/vocabulary-based estimate (grammar and pronunciation are not measured).
+  function bandEstimate(o) {
+    if (!o || !(o.words >= 15)) return null;
+    var minutes = (o.seconds || 60) / 60;
+    var len = Math.min(1, o.words / (minutes * 110));
+    var pace = o.wpm == null ? 0.5 : 1 - Math.min(1, Math.abs(o.wpm - 125) / 90);
+    var lex = clamp((o.unique / Math.sqrt(o.words) - 3.5) / 4.5, 0, 1);
+    var fl = clamp(1 - ((o.fillers || 0) / o.words) / 0.08, 0, 1);
+    var total = 0.35 * len + 0.2 * pace + 0.3 * lex + 0.15 * fl;
+    var band = Math.round((3.5 + total * 3.5) * 2) / 2;
+    return clamp(band, 3.5, 7);
+  }
+
+  var api = { paceKey: paceKey, tips: tips, bandEstimate: bandEstimate,
     fillers: fillers,
     uniqueWords: uniqueWords,
     repeated: repeated,

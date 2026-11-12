@@ -262,6 +262,7 @@
   }
   DAILY = DAILY.concat(ext('DailyMore1', './daily-more-1.js'), ext('DailyMore2', './daily-more-2.js'));
   var IELTS = ext('IeltsBank', './ielts.js');
+  var BANK = ext('PracticeBank', './practice-bank.js');
 
   function lvl(l) { return SECONDS[l] || 60; }
 
@@ -380,6 +381,72 @@
         seconds: Math.ceil(n / wpm * 60) + 4,
         passage: passage,
         passageWpm: wpm
+      };
+    }
+  });
+
+  function seedOf(d, ctx, salt) {
+    if (ctx && typeof ctx.i === 'number') return ctx.i + (salt || 0) * (ctx.j || 0);
+    var h = 0;
+    for (var k = 0; k < d.theme.length; k++) h = (h * 31 + d.theme.charCodeAt(k)) % 100003;
+    return h;
+  }
+  function pick(list, n) { return list[((n % list.length) + list.length) % list.length]; }
+  function lvl3(l, a, b, c) { return l === 'easy' ? a : l === 'hard' ? c : b; }
+
+  TESTS.push({
+    id: 'twister',
+    titleTr: 'Dil dönmesi',
+    build: function (d, l, ctx) {
+      return {
+        promptEn: 'Say this tongue twister clearly, then faster. Repeat it as many times as you can.',
+        hintTr: 'Önce yavaş ve net, sonra hızlı oku. Net telaffuz hızdan önemli.',
+        seconds: lvl3(l, 30, 40, 50),
+        passage: pick(BANK.TWISTERS, seedOf(d, ctx)),
+        scoreCoverage: true
+      };
+    }
+  });
+
+  TESTS.push({
+    id: 'pitch',
+    titleTr: '1 dakikada kendini anlat',
+    build: function (d, l, ctx) {
+      var p = pick(BANK.PITCHES, seedOf(d, ctx));
+      return {
+        promptEn: p.prompt,
+        hintTr: 'Mülakat gibi düşün: kısa bir giriş, 3 maddeyi sırayla anlat, güçlü bir kapanış yap.',
+        seconds: lvl3(l, 60, 75, 90),
+        points: p.points.slice()
+      };
+    }
+  });
+
+  TESTS.push({
+    id: 'scene',
+    titleTr: 'Sahneyi anlat',
+    build: function (d, l, ctx) {
+      var s = pick(BANK.SCENES, seedOf(d, ctx));
+      var extra = lvl3(l, 'Say what you see.', 'Say what you see and what is happening.', 'Say what you see, what happened before, and what will happen next.');
+      return {
+        promptEn: s.title + '. ' + extra + ' Invent a short story about it.',
+        hintTr: 'Emojilerden bir hikâye kur: kim, nerede, ne oldu, sonunda ne olacak?',
+        seconds: lvl3(l, 45, 60, 90),
+        scene: s.emoji
+      };
+    }
+  });
+
+  TESTS.push({
+    id: 'pairs',
+    titleTr: 'Telaffuz çiftleri',
+    build: function (d, l, ctx) {
+      return {
+        promptEn: 'Read each pair slowly and clearly. Then read the whole list again, a little faster.',
+        hintTr: 'Konuşma tanıma duyduğu kelimeyi yazar; yanlış telaffuz edersen başka kelime çıkar. Kelime çiftlerindeki sesi belirgin yap.',
+        seconds: lvl3(l, 30, 40, 50),
+        passage: pick(BANK.PAIRS, seedOf(d, ctx)),
+        scoreCoverage: true
       };
     }
   });

@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
 
-  var PASSPORT_IDS = ['free', 'describe', 'opinion', 'story', 'targets', 'roleplay', 'repeat', 'rapid', 'shadow'];
+  var PASSPORT_IDS = ['free', 'describe', 'opinion', 'story', 'targets', 'roleplay', 'repeat', 'rapid', 'shadow', 'twister', 'pitch', 'scene', 'pairs'];
 
   function parseKey(k) {
     var p = String(k).split('-');
@@ -77,7 +77,7 @@
     { id: 'streak7', title: 'Haftalık Seri', emoji: '🏅', desc: '7 gün üst üste pratik yap', test: function (s) { return s.bestStreak >= 7; } },
     { id: 'words100', title: '100 Kelime', emoji: '💬', desc: 'Toplam 100 kelime konuş', test: function (s) { return s.words >= 100; } },
     { id: 'words500', title: '500 Kelime', emoji: '🗣️', desc: 'Toplam 500 kelime konuş', test: function (s) { return s.words >= 500; } },
-    { id: 'passport', title: 'Tam Pasaport', emoji: '🛂', desc: '9 günlük test türünün hepsini dene', test: function (s) {
+    { id: 'passport', title: 'Tam Pasaport', emoji: '🛂', desc: '13 günlük test türünün hepsini dene', test: function (s) {
       return PASSPORT_IDS.every(function (id) { return s.stamps.indexOf(id) !== -1; });
     } },
     { id: 'ielts', title: 'IELTS Denemesi', emoji: '🎓', desc: 'Bir IELTS Speaking testi bitir', test: function (s) {

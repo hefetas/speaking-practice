@@ -49,3 +49,10 @@ test('analyze bundles the pieces', () => {
   assert.strictEqual(r.unique, 5);
   assert.strictEqual(r.fillers.count, 0);
 });
+
+test('paceKey mirrors paceLabel bands for i18n', () => {
+  assert.strictEqual(A.paceKey(null), null);
+  assert.strictEqual(A.paceKey(80), 'slow');
+  assert.strictEqual(A.paceKey(120), 'natural');
+  assert.strictEqual(A.paceKey(200), 'fast');
+});

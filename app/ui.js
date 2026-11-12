@@ -5,25 +5,53 @@
   var P = window.Progress;
   var A = window.Analysis;
   var C = window.Content;
+  var Ch = window.Challenge;
+  var B = window.Backup;
+  var N = window.Notebook;
+  var ICS = window.Ics;
+  var I = window.I18N;
+  var G = window.Legal;
+  var CFG = window.CONFIG || {};
   var screen = document.getElementById('screen');
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   var synth = window.speechSynthesis || null;
   var CAN_RECORD = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-  var GOAL = 2; // tests per day
+  var GOAL = 2;
+  var PREFIX = 'spk_';
 
-  // ---------- storage (always try/catch, in-memory fallback) ----------
+  // ---------- storage (try/catch everywhere, in-memory fallback, nothing persisted before consent) ----------
   var mem = {};
+  var persist = false;
   var store = {
     get: function (k) {
       try {
-        var v = window.localStorage.getItem('spk_' + k);
+        var v = window.localStorage.getItem(PREFIX + k);
         if (v !== null) return v;
       } catch (e) {}
       return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null;
     },
     set: function (k, v) {
       mem[k] = String(v);
-      try { window.localStorage.setItem('spk_' + k, String(v)); } catch (e) {}
+      if (!persist && k !== 'consent') return;
+      try { window.localStorage.setItem(PREFIX + k, String(v)); } catch (e) {}
+    },
+    keys: function () {
+      var out = Object.keys(mem);
+      try {
+        for (var i = 0; i < window.localStorage.length; i++) {
+          var k = window.localStorage.key(i);
+          if (k && k.indexOf(PREFIX) === 0 && out.indexOf(k.slice(PREFIX.length)) === -1) out.push(k.slice(PREFIX.length));
+        }
+      } catch (e) {}
+      return out;
+    },
+    clear: function () {
+      var ks = store.keys();
+      mem = {};
+      try { ks.forEach(function (k) { window.localStorage.removeItem(PREFIX + k); }); } catch (e) {}
+    },
+    flush: function () {
+      Object.keys(mem).forEach(function (k) { try { window.localStorage.setItem(PREFIX + k, mem[k]); } catch (e) {} });
     }
   };
   function num(k) { return parseInt(store.get(k) || '0', 10) || 0; }
@@ -31,6 +59,11 @@
     try { var v = store.get(k); return v ? JSON.parse(v) : null; } catch (e) { return null; }
   }
   function setJSON(k, v) { store.set(k, JSON.stringify(v)); }
+
+  // ---------- language ----------
+  var lang = store.get('lang');
+  if (lang !== 'tr' && lang !== 'en') lang = /^tr/i.test(navigator.language || '') ? 'tr' : 'en';
+  function t(key, vars) { return I.t(lang, key, vars); }
 
   // ---------- helpers ----------
   function esc(s) {
@@ -42,59 +75,80 @@
   function on(id, fn) { var el = $(id); if (el) el.addEventListener('click', fn); }
   function show(html) { screen.innerHTML = html; window.scrollTo(0, 0); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function dateFromKey(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2], 12); }
   function dateLabel(d) {
-    try { return d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+    try { return d.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' }); }
     catch (e) { return L.dateKey(d); }
   }
   function mmss(sec) {
     sec = Math.max(0, Math.ceil(sec));
     return Math.floor(sec / 60) + ':' + pad(sec % 60);
   }
-  function flow(on_) { document.body.classList.toggle('in-flow', !!on_); }
+  function flow(v) {
+    document.body.classList.toggle('in-flow', !!v);
+    document.body.classList.remove('no-tabs');
+  }
+  function noTabs() { document.body.classList.add('no-tabs'); }
   function sign(n) { return n > 0 ? '▲ +' + n : (n < 0 ? '▼ ' + n : '＝ 0'); }
   function cls(n) { return n > 0 ? 'up' : (n < 0 ? 'down' : ''); }
-  var LEVEL_TR = { easy: 'Kolay', medium: 'Orta', hard: 'Zor' };
-  var DAY_TR = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-  var STAMPS = {
-    free: ['🗣️', 'Serbest'], describe: ['🖼️', 'Betimleme'], opinion: ['⚖️', 'Görüş'],
-    story: ['📖', 'Hikâye'], targets: ['🎯', 'Kelimeler'], roleplay: ['🎭', 'Rol'],
-    repeat: ['🔁', 'Tekrar'], rapid: ['⚡', 'Hız'], shadow: ['👥', 'Gölge']
+  function rint(n) { return Math.floor(Math.random() * n); }
+  function siteUrl() { return window.location.href.split(/[?#]/)[0]; }
+  function lvlName(l) { return t('lvl_' + l); }
+  function testTitle(id) { return I.testTitle(lang, id); }
+  function hintFor(b, id) { return lang === 'tr' ? b.hintTr : I.testHint('en', id); }
+  function themeMain(d) { return lang === 'tr' ? d.themeTr : d.theme; }
+
+  var STAMP_EMOJI = {
+    free: '🗣️', describe: '🖼️', opinion: '⚖️', story: '📖', targets: '🎯', roleplay: '🎭', repeat: '🔁',
+    rapid: '⚡', shadow: '👥', twister: '🌀', pitch: '💼', scene: '🎬', pairs: '👂'
   };
 
   // ---------- state ----------
   var today = new Date();
   var daily = L.pickDaily(C.DAILY, today);
+  var activeDaily = daily;
   var level = store.get('level');
   if (C.LEVELS.indexOf(level) === -1) level = 'medium';
   var mode = store.get('mode') === 'ielts' ? 'ielts' : 'daily';
   var testId = null;
+  var seeds = { i: 0, j: 0 };
   var ictx = null;
   var run = null;
   var cdTimer = null;
   var audioUrl = null;
+  var chalState = null; // { ch, joined }
+  var view = null;
+  var consented = false;
 
   function tests() { return mode === 'ielts' ? C.IELTS_TESTS : C.TESTS; }
-  function testIds() { return tests().map(function (t) { return t.id; }); }
-  function pickIelts() {
-    var n = C.IELTS.length;
-    var last = parseInt(store.get('lastCard') || '-1', 10);
-    var i = Math.floor(Math.random() * n);
-    if (n > 1 && i === last) i = (i + 1) % n;
-    store.set('lastCard', i);
-    return { card: C.IELTS[i], i: Math.floor(Math.random() * 3) };
+  function testIds() { return tests().map(function (x) { return x.id; }); }
+  function ctxFor(m, i, j) {
+    return m === 'ielts' ? { card: C.IELTS[i % C.IELTS.length], i: j % 3, j: j } : { i: i, j: j };
   }
   function pickNext() {
     testId = L.pickTest(testIds(), store.get('lastTest'));
     store.set('lastTest', testId);
-    ictx = mode === 'ielts' ? pickIelts() : null;
+    seeds = { i: rint(10000), j: rint(10000) };
+    if (mode === 'ielts') {
+      var last = parseInt(store.get('lastCard') || '-1', 10);
+      if (C.IELTS.length > 1 && seeds.i % C.IELTS.length === last) seeds.i += 1;
+      store.set('lastCard', seeds.i % C.IELTS.length);
+    }
+    ictx = ctxFor(mode, seeds.i, seeds.j);
   }
   function currentTest() {
-    var t = tests().filter(function (x) { return x.id === testId; })[0];
-    if (!t) { pickNext(); t = tests().filter(function (x) { return x.id === testId; })[0]; }
-    return t;
+    var x = tests().filter(function (y) { return y.id === testId; })[0];
+    if (!x) { pickNext(); x = tests().filter(function (y) { return y.id === testId; })[0]; }
+    return x;
   }
-  function currentBuild() { return currentTest().build(daily, level, ictx); }
-  pickNext();
+  function currentBuild() { return currentTest().build(activeDaily, level, ictx); }
+  function restoreEnv() {
+    mode = store.get('mode') === 'ielts' ? 'ielts' : 'daily';
+    level = store.get('level');
+    if (C.LEVELS.indexOf(level) === -1) level = 'medium';
+    activeDaily = daily;
+    chalState = null;
+  }
 
   // ---------- progress state ----------
   function getStreak() { return { last: store.get('streakLast'), streak: num('streak'), freeze: num('freeze') }; }
@@ -113,6 +167,7 @@
     var wk = getJSON('wk');
     return wk && wk.key === weekKey() ? wk : P.emptyWeek(weekKey());
   }
+  function vocabList() { return N.parse(store.get('vocab')); }
 
   function paintPill() {
     var el = $('streakPill');
@@ -120,7 +175,36 @@
     var s = getStreak();
     var n = P.streakAlive(s, L.dateKey(new Date()));
     el.textContent = '🔥 ' + n + (s.freeze > 0 ? '  ❄️ ' + s.freeze : '');
-    el.setAttribute('aria-label', n + ' günlük seri' + (s.freeze > 0 ? ', ' + s.freeze + ' seri dondurma hakkı' : ''));
+    el.setAttribute('aria-label', s.freeze > 0 ? t('pill_aria_freeze', { n: n, f: s.freeze }) : t('pill_aria', { n: n }));
+  }
+
+  function paintChrome() {
+    document.documentElement.setAttribute('lang', lang);
+    var a = $('tabToday'); if (a) a.textContent = t('tab_today');
+    var b = $('tabProg'); if (b) b.textContent = t('tab_progress');
+    var tabs = $('tabs'); if (tabs) tabs.setAttribute('aria-label', t('tabs_label'));
+    var foot = $('foot'); if (foot) foot.textContent = t('foot');
+    var fl = $('flinks');
+    if (fl) {
+      fl.innerHTML = '<button data-legal="privacy">' + esc(t('link_privacy')) + '</button>' +
+        '<button data-legal="terms">' + esc(t('link_terms')) + '</button>' +
+        '<button data-legal="about">' + esc(t('link_about')) + '</button>' +
+        '<button id="langBtn">' + esc(t('lang_other')) + '</button>';
+      var bs = fl.querySelectorAll('[data-legal]');
+      for (var i = 0; i < bs.length; i++) {
+        bs[i].addEventListener('click', function (e) {
+          var kind = e.currentTarget.getAttribute('data-legal');
+          var back = view;
+          legal(kind, back);
+        });
+      }
+      on('langBtn', function () {
+        lang = lang === 'tr' ? 'en' : 'tr';
+        store.set('lang', lang);
+        paintChrome();
+        if (view) view();
+      });
+    }
   }
 
   // Records a finished test and returns what to celebrate.
@@ -160,7 +244,7 @@
     info.xp = P.xpFor({ words: r.words, hits: r.hitCount });
     var total = xpBefore + info.xp + info.bonus;
     store.set('xp', total);
-    if (P.rankFor(total).index > P.rankFor(xpBefore).index) info.rankUp = P.rankFor(total).title;
+    if (P.rankFor(total).index > P.rankFor(xpBefore).index) info.rankUp = P.rankFor(total).index;
 
     info.newBadges = P.badgesFor(getState()).filter(function (b) { return b.earned && !earnedBefore[b.id]; });
     return info;
@@ -175,14 +259,14 @@
       var isDone = done.indexOf(k) !== -1;
       var c = isDone ? 'done' : (k === tk ? 'today' : (k > tk ? 'future' : ''));
       if (k === tk && isDone) c = 'done today';
-      return '<div><div class="day">' + DAY_TR[i] + '</div><div class="dot ' + c + '">' + (isDone ? '✓' : '') + '</div></div>';
+      return '<div><div class="day">' + esc(t('day' + i)) + '</div><div class="dot ' + c + '">' + (isDone ? '✓' : '') + '</div></div>';
     }).join('') + '</div>';
   }
   function ringHtml(n, goal) {
     var r = 36;
     var c = 2 * Math.PI * r;
     var frac = Math.min(1, n / goal);
-    return '<svg class="ring" viewBox="0 0 90 90" role="img" aria-label="Günlük hedef ' + Math.min(n, goal) + '/' + goal + '">' +
+    return '<svg class="ring" viewBox="0 0 90 90" role="img" aria-label="' + esc(t('goal_aria', { a: Math.min(n, goal), b: goal })) + '">' +
       '<circle class="bg" cx="45" cy="45" r="' + r + '" fill="none" stroke-width="10"></circle>' +
       '<circle class="fg" cx="45" cy="45" r="' + r + '" fill="none" stroke-width="10" stroke-linecap="round" ' +
       'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - frac)).toFixed(1) + '" transform="rotate(-90 45 45)"></circle>' +
@@ -191,21 +275,70 @@
   function rankHtml() {
     var xp = num('xp');
     var r = P.rankFor(xp);
-    var hint = r.next ? 'Sonraki rütbe: ' + esc(r.next) + ' · ' + (r.xpNeeded - r.xpInto) + ' XP kaldı' : 'En yüksek rütbedesin 👑';
-    return '<section class="card"><h2>Rütben</h2>' +
-      '<div class="rankrow"><b>' + esc(r.title) + '</b><span>' + xp + ' XP</span></div>' +
+    var hint = r.next ? t('rank_next', { r: t('rank_' + (r.index + 1)), n: r.xpNeeded - r.xpInto }) : t('rank_max');
+    return '<section class="card"><h2>' + esc(t('rank_title')) + '</h2>' +
+      '<div class="rankrow"><b>' + esc(t('rank_' + r.index)) + '</b><span>' + xp + ' XP</span></div>' +
       '<div class="bar slim gold"><i style="width:' + Math.round(r.frac * 100) + '%"></i></div>' +
-      '<p class="hint" style="margin-top:8px">' + hint + '</p></section>';
+      '<p class="hint" style="margin-top:8px">' + esc(hint) + '</p></section>';
   }
   function challengeHtml() {
     var wk = currentWeek();
     var ch = P.challengeFor(weekKey());
     var n = P.challengeProgress(ch, wk);
     var done = wk.claimed || n >= ch.target;
-    return '<section class="card"><h2>Haftanın görevi</h2>' +
-      '<p class="chal-title">' + esc(ch.titleTr) + '</p>' +
+    return '<section class="card"><h2>' + esc(t('chal_title')) + '</h2>' +
+      '<p class="chal-title">' + esc(t('chal_' + ch.id)) + '</p>' +
       '<div class="bar slim mint"><i style="width:' + Math.round((n / ch.target) * 100) + '%"></i></div>' +
-      '<p class="hint" style="margin-top:8px">' + (done ? 'Tamamlandı ✓ (+50 XP)' : n + '/' + ch.target) + '</p></section>';
+      '<p class="hint" style="margin-top:8px">' + esc(done ? t('chal_done') : n + '/' + ch.target) + '</p></section>';
+  }
+  function nickField() {
+    return '<label class="field"><span>' + esc(t('ch_nick_label')) + '</span>' +
+      '<input id="nick" type="text" maxlength="16" autocomplete="off" placeholder="' + esc(t('ch_nick_ph')) + '" value="' + esc(store.get('nick') || '') + '">' +
+      '<small>' + esc(t('ch_nick_help')) + '</small></label>';
+  }
+  function readNick() {
+    var el = $('nick');
+    var v = Ch.cleanNick(el ? el.value : '');
+    if (v) store.set('nick', v);
+    return v || Ch.cleanNick(store.get('nick')) || '';
+  }
+  function standingsHtml(rounds, mineIdx) {
+    if (!rounds.length) return '<p class="empty">' + esc(t('ch_nobody')) + '</p>';
+    var st = Ch.standings(rounds);
+    return '<ol class="standings">' + st.map(function (x) {
+      return '<li class="' + (x.idx === mineIdx ? 'me' : '') + '"><span class="rk">' + x.rank + '</span><span class="nm">' + esc(x.n) + '</span>' +
+        '<span class="sc">' + x.score + ' ' + esc(t('ch_score')) + '</span><small>' + x.w + ' · ' + x.u + (x.p == null ? '' : ' · ' + x.p + '/' + esc(t('stat_wpm'))) + '</small></li>';
+    }).join('') + '</ol>';
+  }
+
+  // ---------- helpers: files, clipboard, sharing ----------
+  function saveBlob(blob, name) {
+    try {
+      var a = document.createElement('a');
+      var u = URL.createObjectURL(blob);
+      a.href = u;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(u); }, 2000);
+      return true;
+    } catch (e) { return false; }
+  }
+  function setNote(id, msg) { var el = $(id); if (el) el.textContent = msg; }
+  function copyText(text, noteId, okMsg) {
+    try {
+      navigator.clipboard.writeText(text).then(
+        function () { setNote(noteId, okMsg); },
+        function () { setNote(noteId, t('share_copy_fail', { t: text })); }
+      );
+    } catch (e) { setNote(noteId, t('share_copy_fail', { t: text })); }
+  }
+  function shareOrCopy(text, url, noteId) {
+    try {
+      if (navigator.share) { navigator.share({ text: text, url: url }).catch(function () {}); return; }
+    } catch (e) {}
+    copyText(text + ' ' + url, noteId, t('ch_link_copied'));
   }
 
   // ---------- cleanup ----------
@@ -214,7 +347,7 @@
     if (!a) return;
     a.state = 'cancelled';
     try { if (a.mr && a.mr.state !== 'inactive') { a.mr.onstop = null; a.mr.stop(); } } catch (e) {}
-    try { if (a.stream) a.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+    try { if (a.stream) a.stream.getTracks().forEach(function (x) { x.stop(); }); } catch (e) {}
   }
   function stopAll() {
     if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
@@ -230,48 +363,113 @@
   }
   function setTab(name) {
     var tabs = document.querySelectorAll('.tab');
-    for (var i = 0; i < tabs.length; i++) {
-      tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab') === name);
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab') === name);
+  }
+  // ---------- consent and legal ----------
+  function consent() {
+    stopAll();
+    view = consent;
+    flow(false);
+    noTabs();
+    paintChrome();
+    show(
+      '<h1>' + esc(t('consent_title')) + '</h1><p class="sub">' + esc(t('consent_intro')) + '</p>' +
+      '<section class="card"><ul class="bullets"><li>' + esc(t('consent_b1')) + '</li><li>' + esc(t('consent_b2')) + '</li>' +
+      '<li>' + esc(t('consent_b3')) + '</li><li>' + esc(t('consent_b4')) + '</li></ul></section>' +
+      '<div class="row legal-row"><button class="ghost" data-legal="privacy">' + esc(t('link_privacy')) + '</button>' +
+      '<button class="ghost" data-legal="terms">' + esc(t('link_terms')) + '</button></div>' +
+      '<label class="check"><input type="checkbox" id="cAgree"><span>' + esc(t('consent_check')) + '</span></label>' +
+      '<p class="alert-soft" id="cNeed" hidden>' + esc(t('consent_need')) + '</p>' +
+      '<button class="primary" id="cAccept">' + esc(t('consent_accept')) + '</button>' +
+      '<div class="row"><button class="ghost" id="cDecline">' + esc(t('consent_decline')) + '</button></div>'
+    );
+    var lb = screen.querySelectorAll('[data-legal]');
+    for (var i = 0; i < lb.length; i++) {
+      lb[i].addEventListener('click', function (e) { legal(e.currentTarget.getAttribute('data-legal'), consent); });
     }
+    on('cAccept', function () {
+      var cb = $('cAgree');
+      if (!cb || !cb.checked) { var n = $('cNeed'); if (n) n.hidden = false; return; }
+      persist = true;
+      consented = true;
+      store.set('consent', String(CFG.consentVersion));
+      store.flush();
+      boot2();
+    });
+    on('cDecline', declined);
+  }
+  function declined() {
+    view = declined;
+    flow(false);
+    noTabs();
+    show('<h1>' + esc(t('consent_declined_title')) + '</h1><section class="card"><p>' + esc(t('consent_declined_msg')) + '</p></section>' +
+      '<button class="primary" id="cBack">' + esc(t('consent_back')) + '</button>');
+    on('cBack', consent);
+  }
+  function fill(s) {
+    var miss = t('legal_missing');
+    return String(s)
+      .replace(/\{operator\}/g, CFG.operator || miss)
+      .replace(/\{contact\}/g, CFG.contact || miss)
+      .replace(/\{date\}/g, CFG.date || '');
+  }
+  function legal(kind, back) {
+    stopAll();
+    var l = lang;
+    view = function () { legal(kind, back); };
+    flow(false);
+    if (!consented) noTabs();
+    var secs = G[l][kind].map(function (s) {
+      return '<section class="card legal"><h2>' + esc(s.h) + '</h2>' + s.p.map(function (p) { return '<p>' + esc(fill(p)) + '</p>'; }).join('') + '</section>';
+    }).join('');
+    show('<h1>' + esc(t('legal_title_' + kind)) + '</h1><p class="hint">' + esc(t('legal_updated', { d: CFG.date || '' })) + '</p>' +
+      (CFG.launch ? '' : '<div class="notice">' + esc(t('legal_draft')) + '</div>') + secs +
+      '<button class="primary" id="lBack">' + esc(t('legal_back')) + '</button>');
+    on('lBack', function () { if (back) back(); else home(); });
+    paintChrome();
   }
 
   // ---------- screens ----------
   function home() {
     stopAll();
+    restoreEnv();
+    view = home;
     flow(false);
     setTab('today');
+    paintChrome();
     paintPill();
     var isI = mode === 'ielts';
     var chips = daily.words.map(function (w) { return '<span class="chip">' + esc(w) + '</span>'; }).join('');
     var levels = C.LEVELS.map(function (l) {
-      return '<button data-level="' + l + '" class="' + (l === level ? 'on' : '') + '" aria-pressed="' + (l === level) + '">' + LEVEL_TR[l] + '</button>';
+      return '<button data-level="' + l + '" class="' + (l === level ? 'on' : '') + '" aria-pressed="' + (l === level) + '">' + esc(lvlName(l)) + '</button>';
     }).join('');
     var n = todayCount();
-    var goalText = n >= GOAL ? 'Hedef tamam! 🎉' : (GOAL - n) + ' test daha yap';
-    var notice = SR ? '' :
-      '<div class="notice">Tarayıcın konuşma tanımayı desteklemiyor. Chrome veya Edge ile konuşarak pratik yapabilirsin. Şimdilik cevabını yazarak verebilirsin.</div>';
+    var goalText = n >= GOAL ? t('goal_done') : t('home_goal_left', { n: GOAL - n });
+    var notice = SR ? '' : '<div class="notice">' + esc(t('notice_nosr')) + '</div>';
+    var sub = lang === 'tr' ? '<p class="sub">' + esc(daily.theme) + '</p>' : '';
     var hero = isI
-      ? '<p class="eyebrow">Sınav modu</p><span class="emoji" aria-hidden="true">🎓</span><h1>IELTS Speaking</h1>' +
-        '<p class="sub">Part 1, 2 ve 3 tarzı sorular · her seferinde farklı kart</p>' +
-        '<button class="btn-sun" id="go">IELTS testi başlat</button>'
-      : '<p class="eyebrow">Günün konusu · ' + esc(dateLabel(today)) + '</p><span class="emoji" aria-hidden="true">' + daily.emoji + '</span>' +
-        '<h1>' + esc(daily.themeTr) + '</h1><p class="sub">' + esc(daily.theme) + '</p>' +
-        '<button class="btn-sun" id="go">Bugünkü testi başlat</button>';
+      ? '<p class="eyebrow">' + esc(t('eyebrow_exam')) + '</p><span class="emoji" aria-hidden="true">🎓</span><h1>' + esc(t('ielts_title')) + '</h1>' +
+        '<p class="sub">' + esc(t('ielts_sub')) + '</p><button class="btn-sun" id="go">' + esc(t('ielts_start')) + '</button>'
+      : '<p class="eyebrow">' + esc(t('eyebrow_today', { d: dateLabel(today) })) + '</p><span class="emoji" aria-hidden="true">' + daily.emoji + '</span>' +
+        '<h1>' + esc(themeMain(daily)) + '</h1>' + sub + '<button class="btn-sun" id="go">' + esc(t('hero_start')) + '</button>';
+    var vc = vocabList().length;
     show(
       '<section class="hero">' + hero + '</section>' +
-      '<div class="seg two" role="group" aria-label="Mod" style="margin-top:14px">' +
-        '<button data-mode="daily" class="' + (!isI ? 'on' : '') + '" aria-pressed="' + (!isI) + '">Günlük pratik</button>' +
-        '<button data-mode="ielts" class="' + (isI ? 'on' : '') + '" aria-pressed="' + isI + '">IELTS Speaking</button>' +
+      '<div class="seg two" role="group" aria-label="' + esc(t('mode_label')) + '" style="margin-top:14px">' +
+        '<button data-mode="daily" class="' + (!isI ? 'on' : '') + '" aria-pressed="' + (!isI) + '">' + esc(t('mode_daily')) + '</button>' +
+        '<button data-mode="ielts" class="' + (isI ? 'on' : '') + '" aria-pressed="' + isI + '">' + esc(t('mode_ielts')) + '</button>' +
       '</div>' +
       notice +
-      '<section class="card goal">' + ringHtml(n, GOAL) +
-        '<div><b>Günlük hedef</b><span>' + goalText + '</span></div></section>' +
-      rankHtml() +
-      challengeHtml() +
-      '<section class="card"><h2>Bu hafta</h2>' + weekHtml() + '</section>' +
+      '<section class="card invite"><h2>' + esc(t('invite_title')) + '</h2><p>' + esc(t('invite_sub')) + '</p>' +
+        '<button class="primary small" id="invite">' + esc(t('invite_btn')) + '</button></section>' +
+      '<section class="card goal">' + ringHtml(n, GOAL) + '<div><b>' + esc(t('goal_title')) + '</b><span>' + esc(goalText) + '</span></div></section>' +
+      (vc ? '<section class="card vocabcard"><h2>' + esc(t('vocab_card_title')) + '</h2><p>' + esc(t('vocab_card_count', { n: vc })) + '</p>' +
+        '<button class="ghost" id="vocabOpen">' + esc(t('vocab_open')) + '</button></section>' : '') +
+      rankHtml() + challengeHtml() +
+      '<section class="card"><h2>' + esc(t('week_title')) + '</h2>' + weekHtml() + '</section>' +
       (isI ? '' :
-        '<section class="card"><h2>Bugünün hedef kelimeleri</h2><div class="chips">' + chips + '</div></section>' +
-        '<section class="card"><h2>Seviye</h2><div class="seg" role="group" aria-label="Seviye">' + levels + '</div></section>')
+        '<section class="card"><h2>' + esc(t('words_title')) + '</h2><div class="chips">' + chips + '</div></section>' +
+        '<section class="card"><h2>' + esc(t('level_title')) + '</h2><div class="seg" role="group" aria-label="' + esc(t('level_title')) + '">' + levels + '</div></section>')
     );
     var btns = screen.querySelectorAll('[data-level]');
     for (var i = 0; i < btns.length; i++) {
@@ -290,65 +488,243 @@
         home();
       });
     }
-    on('go', card);
+    on('go', function () { if (!testId || tests().every(function (x) { return x.id !== testId; })) pickNext(); card(); });
+    on('invite', invite);
+    on('vocabOpen', vocab);
   }
 
   function progress() {
     stopAll();
+    restoreEnv();
+    view = progress;
     flow(false);
     setTab('progress');
+    paintChrome();
     paintPill();
     var got = stampList();
     var st = getStreak();
-    var stamps = P.PASSPORT_IDS.map(function (id) {
-      var s = STAMPS[id];
-      return '<div class="stamp ' + (got.indexOf(id) !== -1 ? 'got' : '') + '"><span class="ico">' + s[0] + '</span>' + s[1] + '</div>';
+    var ids = P.PASSPORT_IDS;
+    var stamps = ids.map(function (id) {
+      return '<div class="stamp ' + (got.indexOf(id) !== -1 ? 'got' : '') + '"><span class="ico">' + STAMP_EMOJI[id] + '</span>' + esc(t('stamp_' + id)) + '</div>';
     }).join('');
     var badges = P.badgesFor(getState()).map(function (b) {
-      return '<div class="badge ' + (b.earned ? 'got' : 'lock') + '"><span class="ico">' + (b.earned ? b.emoji : '🔒') + '</span><div><b>' + esc(b.title) + '</b><span>' + esc(b.desc) + '</span></div></div>';
+      return '<div class="badge ' + (b.earned ? 'got' : 'lock') + '"><span class="ico">' + (b.earned ? b.emoji : '🔒') + '</span><div><b>' +
+        esc(t('badge_' + b.id + '_t')) + '</b><span>' + esc(t('badge_' + b.id + '_d')) + '</span></div></div>';
     }).join('');
+    var gotCount = ids.filter(function (id) { return got.indexOf(id) !== -1; }).length;
     show(
-      '<h1>İlerleme</h1><p class="sub">Küçük adımlar, büyük fark.</p>' +
+      '<h1>' + esc(t('prog_title')) + '</h1><p class="sub">' + esc(t('prog_sub')) + '</p>' +
       '<div class="stats">' +
-        '<div class="stat"><b>' + P.streakAlive(st, L.dateKey(new Date())) + '</b><span>gün seri</span></div>' +
-        '<div class="stat"><b>' + num('done') + '</b><span>tamamlanan test</span></div>' +
-        '<div class="stat"><b>' + num('words') + '</b><span>söylenen kelime</span></div>' +
-        '<div class="stat"><b>' + num('xp') + '</b><span>toplam XP</span></div>' +
+        '<div class="stat"><b>' + P.streakAlive(st, L.dateKey(new Date())) + '</b><span>' + esc(t('stat_streak')) + '</span></div>' +
+        '<div class="stat"><b>' + num('done') + '</b><span>' + esc(t('stat_tests')) + '</span></div>' +
+        '<div class="stat"><b>' + num('words') + '</b><span>' + esc(t('stat_wordsum')) + '</span></div>' +
+        '<div class="stat"><b>' + num('xp') + '</b><span>' + esc(t('stat_xp')) + '</span></div>' +
       '</div>' +
-      '<p class="hint">❄️ Seri dondurma hakkın: ' + st.freeze + ' · Her 7 günlük seride 1 hak kazanırsın (en fazla 2). Bir gün kaçırırsan otomatik kullanılır.</p>' +
-      rankHtml() +
-      challengeHtml() +
-      '<section class="card"><h2>Konuşma pasaportu (' + P.PASSPORT_IDS.filter(function (id) { return got.indexOf(id) !== -1; }).length + '/9)</h2><div class="stamps">' + stamps + '</div></section>' +
-      '<section class="card"><h2>Rozetler</h2><div class="badges">' + badges + '</div></section>' +
-      '<section class="card"><h2>Bu hafta</h2>' + weekHtml() + '</section>'
+      '<p class="hint">' + esc(t('freeze_info', { n: st.freeze })) + '</p>' +
+      rankHtml() + challengeHtml() +
+      '<section class="card"><h2>' + esc(t('passport_title', { n: gotCount, m: ids.length })) + '</h2><div class="stamps">' + stamps + '</div></section>' +
+      '<section class="card"><h2>' + esc(t('badges_title')) + '</h2><div class="badges">' + badges + '</div></section>' +
+      '<section class="card"><h2>' + esc(t('week_title')) + '</h2>' + weekHtml() + '</section>' +
+      '<section class="card"><h2>' + esc(t('profile_title')) + '</h2>' + nickField() +
+        '<div class="row"><button id="nickSave">' + esc(t('nick_save')) + '</button></div><p class="hint" id="nickNote"></p></section>' +
+      '<section class="card"><h2>' + esc(t('remind_title')) + '</h2><p class="hint">' + esc(t('remind_help')) + '</p>' +
+        '<label class="field"><input id="remindTime" type="time" value="' + esc(store.get('remind') || '20:00') + '"></label>' +
+        '<div class="row"><button id="remindBtn">' + esc(t('remind_btn')) + '</button></div><p class="hint" id="remindNote"></p></section>' +
+      '<section class="card"><h2>' + esc(t('backup_title')) + '</h2><p class="hint">' + esc(t('backup_help')) + '</p>' +
+        '<div class="row"><button id="bkMake">' + esc(t('backup_make')) + '</button></div>' +
+        '<textarea id="bkCode" class="code" rows="3" placeholder="' + esc(t('backup_ph')) + '" aria-label="' + esc(t('backup_title')) + '"></textarea>' +
+        '<div class="row"><button class="ghost" id="bkCopy">' + esc(t('backup_copy')) + '</button><button id="bkRestore">' + esc(t('backup_restore')) + '</button></div>' +
+        '<p class="hint" id="bkNote"></p></section>' +
+      '<section class="card danger"><h2>' + esc(t('delete_title')) + '</h2><p class="hint">' + esc(t('delete_help')) + '</p>' +
+        '<div id="delBox"><button class="ghost" id="delBtn">' + esc(t('delete_btn')) + '</button></div></section>'
     );
+    on('nickSave', function () { readNick(); setNote('nickNote', t('nick_saved')); });
+    on('remindBtn', function () {
+      var el = $('remindTime');
+      var time = ICS.validTime(el && el.value) ? el.value : '20:00';
+      store.set('remind', time);
+      var start = L.dateKey(new Date());
+      var body = ICS.make({ time: time, startKey: start, summary: t('remind_summary') });
+      setNote('remindNote', saveBlob(new Blob([body], { type: 'text/calendar' }), 'konus-reminder.ics') ? t('remind_ok') : t('remind_fail'));
+    });
+    on('bkMake', function () {
+      var o = {};
+      store.keys().forEach(function (k) { if (B.allowedKey(k)) o[k] = store.get(k); });
+      var code = B.pack(o);
+      var ta = $('bkCode');
+      if (ta) { ta.value = code; try { ta.focus(); ta.select(); } catch (e) {} }
+    });
+    on('bkCopy', function () { var ta = $('bkCode'); if (ta && ta.value) copyText(ta.value, 'bkNote', t('backup_copied')); });
+    on('bkRestore', function () {
+      var ta = $('bkCode');
+      var o = B.unpack(ta ? ta.value : '');
+      if (!o) { setNote('bkNote', t('backup_bad')); return; }
+      Object.keys(o).forEach(function (k) { store.set(k, o[k]); });
+      var l2 = store.get('lang');
+      if (l2 === 'tr' || l2 === 'en') lang = l2;
+      restoreEnv();
+      paintChrome();
+      progress();
+      setNote('bkNote', t('backup_ok'));
+    });
+    on('delBtn', function () {
+      var box = $('delBox');
+      if (!box) return;
+      box.innerHTML = '<p><b>' + esc(t('delete_confirm')) + '</b></p><div class="row"><button class="dangerbtn" id="delYes">' + esc(t('delete_yes')) +
+        '</button><button class="ghost" id="delNo">' + esc(t('delete_cancel')) + '</button></div>';
+      on('delYes', function () {
+        store.clear();
+        persist = false;
+        consented = false;
+        lang = /^tr/i.test(navigator.language || '') ? 'tr' : 'en';
+        level = 'medium';
+        mode = 'daily';
+        chalState = null;
+        testId = null;
+        consent();
+      });
+      on('delNo', progress);
+    });
   }
 
+  // ---------- vocabulary notebook ----------
+  function say(text) {
+    if (!synth || !window.SpeechSynthesisUtterance) return;
+    try {
+      synth.cancel();
+      var u = new window.SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      synth.speak(u);
+    } catch (e) {}
+  }
+  function vocab() {
+    stopAll();
+    view = vocab;
+    flow(false);
+    setTab('today');
+    paintChrome();
+    var list = vocabList();
+    var rows = list.map(function (w, i) {
+      return '<li><span class="w">' + esc(w) + '</span><button class="mini" data-say="' + i + '" aria-label="' + esc(t('vocab_say')) + ' ' + esc(w) + '">🔊</button>' +
+        '<button class="mini ghost" data-rm="' + i + '">' + esc(t('vocab_done')) + '</button></li>';
+    }).join('');
+    show('<h1>' + esc(t('vocab_h')) + '</h1><p class="sub">' + esc(t('vocab_hint')) + '</p>' +
+      (list.length ? '<section class="card"><ul class="vlist">' + rows + '</ul></section>' +
+        '<button class="primary" id="vDrill">' + esc(t('vocab_drill')) + '</button>' :
+        '<section class="card"><p class="empty">' + esc(t('vocab_empty')) + '</p></section>') +
+      '<div class="row"><button class="ghost" id="vBack">' + esc(t('btn_back')) + '</button></div>');
+    var sb = screen.querySelectorAll('[data-say]');
+    for (var i = 0; i < sb.length; i++) sb[i].addEventListener('click', function (e) { say(list[+e.currentTarget.getAttribute('data-say')]); });
+    var rb = screen.querySelectorAll('[data-rm]');
+    for (var j = 0; j < rb.length; j++) {
+      rb[j].addEventListener('click', function (e) {
+        store.set('vocab', N.serialize(N.remove(list, list[+e.currentTarget.getAttribute('data-rm')])));
+        vocab();
+      });
+    }
+    on('vDrill', function () {
+      var words = list.slice(0, 5);
+      daily.words.forEach(function (w) { if (words.length < 5 && words.indexOf(w.toLowerCase()) === -1) words.push(w); });
+      activeDaily = { theme: 'My word notebook', themeTr: 'Kelime defterim', emoji: '📒', words: words, questions: daily.questions };
+      mode = 'daily';
+      testId = 'rapid';
+      seeds = { i: rint(10000), j: rint(10000) };
+      ictx = ctxFor('daily', seeds.i, seeds.j);
+      card();
+    });
+    on('vBack', home);
+  }
+
+  // ---------- challenges ----------
+  function chalText(ch, rounds) {
+    var d = L.pickDaily(C.DAILY, dateFromKey(ch.d));
+    return t('ch_text_invite', { t: ch.m === 'ielts' ? t('mode_ielts') : themeMain(d), u: '' }).trim();
+  }
+  function invite() {
+    stopAll();
+    view = invite;
+    flow(false);
+    setTab('today');
+    paintChrome();
+    show('<h1>' + esc(t('ch_invite_title')) + '</h1><p class="sub">' + esc(t('ch_invite_sub')) + '</p>' +
+      '<section class="card">' + nickField() + '</section>' +
+      '<section class="card"><p class="hint">' + esc(t('ch_privacy_note')) + '</p><p class="hint">' + esc(t('ch_fun_note')) + '</p></section>' +
+      '<button class="primary" id="iSend">' + esc(t('ch_make_link')) + '</button>' +
+      '<div class="row"><button id="iCopy">' + esc(t('ch_copy_link')) + '</button><button class="ghost" id="iBack">' + esc(t('btn_back')) + '</button></div>' +
+      '<p class="hint" id="iNote"></p>');
+    function build() {
+      readNick();
+      var key = L.dateKey(new Date());
+      var ids = testIds();
+      var ch = { d: key, m: mode, t: Ch.dailyTestId(ids, key), lv: level, i: rint(10000), j: rint(10000), r: [] };
+      var url = Ch.link(siteUrl(), ch);
+      return { ch: ch, url: url, text: chalText(ch) };
+    }
+    on('iSend', function () { var o = build(); shareOrCopy(o.text, o.url, 'iNote'); });
+    on('iCopy', function () { var o = build(); copyText(o.text + ' ' + o.url, 'iNote', t('ch_link_copied')); });
+    on('iBack', home);
+  }
+
+  function challengeIntro(ch) {
+    stopAll();
+    view = function () { challengeIntro(ch); };
+    flow(false);
+    paintChrome();
+    var list = ch.m === 'ielts' ? C.IELTS_TESTS : C.TESTS;
+    var ok = list.some(function (x) { return x.id === ch.t; });
+    if (!ok) { show('<section class="card"><p class="empty">' + esc(t('ch_invalid')) + '</p></section><button class="primary" id="cHome">' + esc(t('btn_home')) + '</button>'); on('cHome', home); return; }
+    var d = L.pickDaily(C.DAILY, dateFromKey(ch.d));
+    show('<p class="eyebrow">' + esc(t('ch_intro_title')) + '</p>' +
+      '<h1>' + esc(ch.m === 'ielts' ? t('ielts_title') : themeMain(d)) + '</h1>' +
+      '<section class="card"><p><b>' + esc(t('ch_test')) + ':</b> ' + esc(I.testTitle(lang, ch.t)) + ' · ' + esc(lvlName(ch.lv)) + '</p>' +
+      '<h2 style="margin-top:14px">' + esc(t('ch_standings')) + '</h2>' + standingsHtml(ch.r, -1) + '</section>' +
+      '<section class="card">' + nickField() + '<p class="hint">' + esc(t('ch_privacy_note')) + '</p></section>' +
+      '<button class="primary" id="cGo">' + esc(t('ch_start')) + '</button>' +
+      '<div class="row"><button class="ghost" id="cSkip">' + esc(t('ch_skip')) + '</button></div>');
+    on('cGo', function () {
+      readNick();
+      mode = ch.m;
+      level = ch.lv;
+      testId = ch.t;
+      seeds = { i: ch.i, j: ch.j };
+      ictx = ctxFor(ch.m, ch.i, ch.j);
+      activeDaily = d;
+      chalState = { ch: ch, joined: false };
+      card();
+    });
+    on('cSkip', function () { try { history.replaceState(null, '', siteUrl()); } catch (e) {} home(); });
+  }
+
+  // ---------- test flow ----------
   function card() {
     stopAll();
     flow(true);
-    var t = currentTest();
+    var t0 = currentTest();
     var b = currentBuild();
     var pts = b.points ? '<ul class="points">' + b.points.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '';
-    var extra = b.prepSeconds ? ' · ' + b.prepSeconds + ' sn hazırlık' : '';
+    var extra = b.prepSeconds ? t('meta_prep', { n: b.prepSeconds }) : '';
+    var scene = b.scene ? '<p class="scene" aria-hidden="true">' + esc(b.scene) + '</p>' : '';
+    var pass = b.passage ? '<p class="passage" style="margin-top:10px">' + esc(b.passage) + '</p>' : '';
     show(
-      '<p class="eyebrow">' + (mode === 'ielts' ? 'IELTS Speaking' : 'Bugünkü test') + '</p>' +
-      '<h1>' + esc(t.titleTr) + '</h1>' +
-      '<p class="meta">' + (mode === 'ielts' ? '' : LEVEL_TR[level] + ' · ') + b.seconds + ' sn' + extra + '</p>' +
-      '<section class="card">' +
-        '<p class="prompt">' + esc(b.promptEn) + '</p>' + pts +
-        '<p class="hint" style="margin-top:10px">💡 ' + esc(b.hintTr) + '</p>' +
-      '</section>' +
-      (CAN_RECORD
-        ? '<label class="toggle"><input type="checkbox" id="audioToggle"' + (store.get('audio') === '1' ? ' checked' : '') + '> <span>🎧 Sesimi kaydet ve geri dinle <small>(deneysel)</small></span></label>'
-        : '') +
-      '<button class="primary" id="start">Başla</button>' +
-      '<div class="row"><button class="ghost" id="other">Başka test</button><button class="ghost" id="back">Geri</button></div>'
+      '<p class="eyebrow">' + esc(mode === 'ielts' ? t('eyebrow_ielts') : t('eyebrow_test')) + '</p>' +
+      '<h1>' + esc(testTitle(t0.id)) + '</h1>' +
+      '<p class="meta">' + (mode === 'ielts' ? '' : esc(lvlName(level)) + ' · ') + esc(t('meta_sec', { n: b.seconds })) + esc(extra) + '</p>' +
+      '<section class="card">' + scene + '<p class="prompt">' + esc(b.promptEn) + '</p>' + pts + pass +
+        '<p class="hint" style="margin-top:10px">💡 ' + esc(hintFor(b, t0.id)) + '</p></section>' +
+      (CAN_RECORD ? '<label class="toggle"><input type="checkbox" id="audioToggle"' + (store.get('audio') === '1' ? ' checked' : '') + '> <span>' +
+        esc(t('audio_toggle')) + ' <small>' + esc(t('audio_exp')) + '</small></span></label>' : '') +
+      '<button class="primary" id="start">' + esc(t('btn_start')) + '</button>' +
+      '<div class="row"><button class="ghost" id="other">' + esc(t('btn_other')) + '</button><button class="ghost" id="back">' + esc(t('btn_back')) + '</button></div>'
     );
     var at = $('audioToggle');
     if (at) at.addEventListener('change', function () { store.set('audio', at.checked ? '1' : '0'); });
     on('start', countdown);
-    on('other', function () { pickNext(); card(); });
+    on('other', function () {
+      if (chalState) { chalState = null; restoreEnv(); }
+      pickNext();
+      card();
+    });
     on('back', home);
   }
 
@@ -356,7 +732,7 @@
     stopAll();
     flow(true);
     var n = 3;
-    show('<div class="center"><p class="eyebrow">Hazır ol</p><div class="count" id="cnt">' + n + '</div></div>');
+    show('<div class="center"><p class="eyebrow">' + esc(t('get_ready')) + '</p><div class="count" id="cnt">' + n + '</div></div>');
     cdTimer = setInterval(function () {
       n--;
       if (n <= 0) {
@@ -378,10 +754,10 @@
     var went = false;
     var pts = (b.points || []).map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('');
     show(
-      '<p class="eyebrow">Hazırlık</p>' +
+      '<p class="eyebrow">' + esc(t('prep_title')) + '</p>' +
       '<div class="timer" id="ptime">' + mmss(b.prepSeconds) + '</div>' +
       '<section class="card"><p class="prompt">' + esc(b.promptEn) + '</p><p class="hint">You should say:</p><ul class="points">' + pts + '</ul></section>' +
-      '<button class="primary" id="prepgo">Hazırım, konuşmaya başla</button>'
+      '<button class="primary" id="prepgo">' + esc(t('prep_go')) + '</button>'
     );
     function go() {
       if (went) return;
@@ -400,67 +776,43 @@
 
   function listen(b) {
     show(
-      '<p class="eyebrow">Dinle</p>' +
-      '<h1>Cümleyi dinle</h1>' +
+      '<p class="eyebrow">' + esc(t('listen_title')) + '</p><h1>' + esc(t('listen_h')) + '</h1>' +
       '<section class="card"><p class="prompt">' + esc(b.speakText) + '</p></section>' +
-      '<div class="row"><button id="replay">🔊 Tekrar dinle</button></div>' +
-      '<button class="primary" id="speak">Konuşmaya başla</button>'
+      '<div class="row"><button id="replay">' + esc(t('replay')) + '</button></div>' +
+      '<button class="primary" id="speak">' + esc(t('speak_go')) + '</button>'
     );
-    function say() {
-      if (!synth || !window.SpeechSynthesisUtterance) return;
-      try {
-        synth.cancel();
-        var u = new window.SpeechSynthesisUtterance(b.speakText);
-        u.lang = 'en-US';
-        u.rate = 0.9;
-        synth.speak(u);
-      } catch (e) {}
-    }
-    on('replay', say);
+    on('replay', function () { say(b.speakText); });
     on('speak', function () { if (synth) { try { synth.cancel(); } catch (e) {} } record(b); });
-    say();
+    say(b.speakText);
   }
 
   function record(b) {
     run = {
-      limit: b.seconds,
-      startedAt: Date.now(),
-      typed: !SR,
-      base: '',
-      final: '',
-      interim: '',
-      done: false,
-      rec: null,
-      timer: null,
-      build: b,
-      audio: null,
-      ridx: -1,
-      widx: -1,
-      pspans: null
+      limit: b.seconds, startedAt: Date.now(), typed: !SR, base: '', final: '', interim: '', done: false,
+      rec: null, timer: null, build: b, audio: null, ridx: -1, widx: -1, pspans: null
     };
     var body = SR
-      ? '<div class="transcript" id="tr" aria-live="polite"><span class="ghost">Konuşmaya başla, söylediklerin burada yazılır…</span></div>'
-      : '<textarea id="typed" placeholder="Cevabını İngilizce yaz…" aria-label="Cevabın"></textarea>';
+      ? '<div class="transcript" id="tr" aria-live="polite"><span class="ghost">' + esc(t('tr_placeholder')) + '</span></div>'
+      : '<textarea id="typed" placeholder="' + esc(t('typed_placeholder')) + '" aria-label="' + esc(t('typed_label')) + '"></textarea>';
     var top;
     if (b.prompts) {
       top = '<section class="card"><p class="rcount" id="rcount">1/' + b.prompts.length + '</p><p class="rapid-prompt" id="rprompt">' + esc(b.prompts[0]) + '</p></section>';
     } else if (b.passage) {
-      top = '<section class="card"><p class="passage" id="passage">' +
-        b.passage.split(/\s+/).map(function (w) { return '<span>' + esc(w) + '</span>'; }).join(' ') + '</p></section>';
+      var spans = b.passage.split(/\s+/).map(function (w) { return '<span>' + esc(w) + '</span>'; }).join(' ');
+      top = '<p class="hint" style="margin-top:12px">' + esc(b.promptEn) + '</p><section class="card"><p class="passage" id="passage">' + spans + '</p></section>';
     } else {
       var pts = b.points ? '<ul class="points">' + b.points.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '';
-      top = '<p class="hint" style="margin-top:12px">' + esc(b.promptEn) + '</p>' + pts;
+      top = (b.scene ? '<p class="scene" aria-hidden="true">' + esc(b.scene) + '</p>' : '') +
+        '<p class="hint" style="margin-top:12px">' + esc(b.promptEn) + '</p>' + pts;
     }
     show(
-      '<p class="eyebrow">' + esc(currentTest().titleTr) + '</p>' +
+      '<p class="eyebrow">' + esc(testTitle(testId)) + '</p>' +
       '<div class="timer" id="time">' + mmss(b.seconds) + '</div>' +
-      '<div class="bar"><i id="fill"></i></div>' +
-      top +
-      '<div id="note"></div>' +
-      '<div id="body">' + body + '</div>' +
-      '<button class="primary" id="finish">Bitir</button>'
+      '<div class="bar"><i id="fill"></i></div>' + top +
+      '<div id="note"></div><div id="body">' + body + '</div>' +
+      '<button class="primary" id="finish">' + esc(t('btn_finish')) + '</button>'
     );
-    if (b.passage) run.pspans = screen.querySelectorAll('#passage span');
+    if (b.passage && b.passageWpm) run.pspans = screen.querySelectorAll('#passage span');
     on('finish', finish);
     if (SR) startRec();
     startAudio();
@@ -486,9 +838,7 @@
     rec.onerror = function (e) {
       if (!run) return;
       var code = e && e.error;
-      if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture' || code === 'network') {
-        switchToTyped(code);
-      }
+      if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture' || code === 'network') switchToTyped(code);
     };
     rec.onend = function () {
       if (!run || run.done || run.typed) return;
@@ -507,12 +857,12 @@
     r.audio = { chunks: [], mr: null, stream: null, state: 'pending' };
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
       if (run !== r || r.done || r.typed || r.audio.state === 'cancelled') {
-        stream.getTracks().forEach(function (t) { t.stop(); });
+        stream.getTracks().forEach(function (x) { x.stop(); });
         return;
       }
       var mr;
       try { mr = new window.MediaRecorder(stream); }
-      catch (e) { stream.getTracks().forEach(function (t) { t.stop(); }); r.audio.state = 'failed'; return; }
+      catch (e) { stream.getTracks().forEach(function (x) { x.stop(); }); r.audio.state = 'failed'; return; }
       r.audio.stream = stream;
       r.audio.mr = mr;
       r.audio.state = 'recording';
@@ -528,26 +878,19 @@
     function done(blob) {
       if (finished) return;
       finished = true;
-      try { a.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+      try { a.stream.getTracks().forEach(function (x) { x.stop(); }); } catch (e) {}
       cb(blob);
     }
-    a.mr.onstop = function () {
-      done(a.chunks.length ? new Blob(a.chunks, { type: a.mr.mimeType || 'audio/webm' }) : null);
-    };
+    a.mr.onstop = function () { done(a.chunks.length ? new Blob(a.chunks, { type: a.mr.mimeType || 'audio/webm' }) : null); };
     try { a.mr.stop(); } catch (e) { done(null); }
     setTimeout(function () { done(null); }, 1500);
   }
 
-  function liveText() {
-    if (!run) return '';
-    return (run.base + run.final + run.interim).trim();
-  }
-
+  function liveText() { return run ? (run.base + run.final + run.interim).trim() : ''; }
   function paintTranscript() {
     var el = $('tr');
     if (!el || !run) return;
-    var t = liveText();
-    el.textContent = t || 'Konuşmaya başla, söylediklerin burada yazılır…';
+    el.textContent = liveText() || t('tr_placeholder');
   }
 
   function switchToTyped(code) {
@@ -556,16 +899,12 @@
     run.typed = true;
     if (run.rec) { try { run.rec.onend = null; run.rec.abort(); } catch (e) {} }
     discardAudio(run);
-    var msg = code === 'not-allowed' || code === 'service-not-allowed'
-      ? 'Mikrofon izni verilmedi. Cevabını yazarak verebilirsin.'
-      : code === 'network'
-        ? 'Konuşma tanıma için internet bağlantısı gerekiyor. Cevabını yazarak verebilirsin.'
-        : 'Mikrofon kullanılamıyor. Cevabını yazarak verebilirsin.';
+    var msg = code === 'not-allowed' || code === 'service-not-allowed' ? t('mic_denied') : (code === 'network' ? t('mic_network') : t('mic_unavailable'));
     var note = $('note');
     if (note) note.innerHTML = '<div class="notice">' + esc(msg) + '</div>';
     var body = $('body');
     if (body) {
-      body.innerHTML = '<textarea id="typed" aria-label="Cevabın"></textarea>';
+      body.innerHTML = '<textarea id="typed" aria-label="' + esc(t('typed_label')) + '"></textarea>';
       var ta = $('typed');
       if (ta) ta.value = text;
     }
@@ -575,9 +914,9 @@
     if (!run || run.done) return;
     var elapsed = (Date.now() - run.startedAt) / 1000;
     var left = run.limit - elapsed;
-    var t = $('time');
+    var el = $('time');
     var f = $('fill');
-    if (t) t.textContent = mmss(left);
+    if (el) el.textContent = mmss(left);
     if (f) f.style.width = Math.max(0, (left / run.limit) * 100) + '%';
     var b = run.build;
     if (b.prompts) {
@@ -590,13 +929,11 @@
         if (rc) rc.textContent = (ri + 1) + '/' + b.prompts.length;
       }
     }
-    if (b.passage && run.pspans) {
+    if (b.passageWpm && run.pspans) {
       var wi = Math.floor(elapsed * b.passageWpm / 60);
       if (wi !== run.widx) {
         run.widx = wi;
-        for (var k = 0; k < run.pspans.length; k++) {
-          run.pspans[k].className = k < wi ? 'read' : (k === wi ? 'cur' : '');
-        }
+        for (var k = 0; k < run.pspans.length; k++) run.pspans[k].className = k < wi ? 'read' : (k === wi ? 'cur' : '');
       }
     }
     if (left <= 0) finish();
@@ -608,12 +945,7 @@
     r.done = true;
     if (r.timer) clearInterval(r.timer);
     var text;
-    if (r.typed) {
-      var ta = $('typed');
-      text = ta ? ta.value : '';
-    } else {
-      text = liveText();
-    }
+    if (r.typed) { var ta = $('typed'); text = ta ? ta.value : ''; } else { text = liveText(); }
     if (r.rec) { try { r.rec.onend = null; r.rec.abort(); } catch (e) {} }
     if (synth) { try { synth.cancel(); } catch (e) {} }
     var seconds = Math.min(r.limit, (Date.now() - r.startedAt) / 1000);
@@ -624,27 +956,46 @@
   function finalize(r, text, seconds, blob) {
     var words = L.countWords(text);
     var an = A.analyze(text);
-    var hits = r.build.targets ? L.targetHits(text, r.build.targets) : null;
+    var b = r.build;
+    var hits = b.targets ? L.targetHits(text, b.targets) : null;
     var wpm = r.typed ? null : L.wordsPerMinute(words, seconds);
     var cur = { words: words, wpm: wpm, unique: an.unique };
     var prev = getJSON('prev_' + testId);
     var cmp = words > 0 ? A.compare(prev, cur) : null;
     var info = commit({ words: words, hitCount: hits ? hits.hit.length : 0 });
     if (words > 0) setJSON('prev_' + testId, cur);
+
+    var added = 0;
+    if (hits && words > 0) {
+      var before = vocabList();
+      var kept = hits.hit.reduce(function (l, w) { return N.remove(l, w); }, before);
+      var after = N.add(kept, hits.missed);
+      added = after.filter(function (w) { return before.indexOf(w) === -1; }).length;
+      store.set('vocab', N.serialize(after));
+    }
+
+    var myRound = Ch.makeRound({ n: store.get('nick'), w: words, u: an.unique, p: wpm, f: an.fillers.count });
+    var chal = null;
+    if (words > 0) {
+      if (chalState && !chalState.joined) {
+        chalState = { ch: Ch.addRound(chalState.ch, myRound), joined: true };
+      }
+      chal = chalState;
+    }
     if (blob) { try { audioUrl = URL.createObjectURL(blob); } catch (e) { audioUrl = null; } }
+    var band = mode === 'ielts' && words > 0
+      ? A.bandEstimate({ words: words, seconds: Math.max(5, seconds), wpm: wpm, unique: an.unique, fillers: an.fillers.count })
+      : null;
     result({
-      text: text, seconds: seconds, words: words, wpm: wpm, typed: r.typed, hits: hits,
-      an: an, cmp: cmp, hadPrev: !!prev, info: info, audioUrl: audioUrl,
-      cov: r.build.passage ? A.coverage(text, r.build.passage) : null,
-      title: currentTest().titleTr
+      text: text, seconds: seconds, words: words, wpm: wpm, typed: r.typed, hits: hits, an: an, cmp: cmp, info: info,
+      audioUrl: audioUrl, cov: b.passage ? A.coverage(text, b.passage) : null, title: testTitle(testId),
+      tips: words > 0 ? A.tips(text) : [], band: band, vocabAdded: added, round: myRound, chal: chal
     });
   }
 
   // ---------- share card ----------
-  function siteUrl() { return window.location.href.split(/[?#]/)[0]; }
   function shareText(s) {
-    return 'Bugün İngilizce konuşma pratiğinde ' + s.words + ' kelime konuştum 🎙️ Serim: ' +
-      P.streakAlive(getStreak(), L.dateKey(new Date())) + ' gün. Sen de dene: ' + siteUrl();
+    return t('share_text', { w: s.words, s: P.streakAlive(getStreak(), L.dateKey(new Date())), u: siteUrl() });
   }
   function rrect(g, x, y, w, h, r) {
     g.beginPath();
@@ -675,17 +1026,17 @@
     g.fillText('🎙️ Konuş', 80, 150);
     g.font = '600 40px ' + font;
     g.fillStyle = '#e4e1ff';
-    g.fillText('İngilizce Speaking Pratik', 80, 215);
+    g.fillText(t('share_card_sub'), 80, 215);
     g.fillStyle = '#ffffff';
     g.font = '800 300px ' + font;
     g.fillText(String(s.words), 70, 640);
     g.font = '700 70px ' + font;
-    g.fillText('kelime konuştum', 80, 735);
+    g.fillText(t('share_card_title'), 80, 735);
     var streak = P.streakAlive(getStreak(), L.dateKey(new Date()));
     var items = [
-      [s.wpm == null ? '–' : String(s.wpm), 'kelime/dk'],
-      ['🔥 ' + streak, 'gün seri'],
-      [P.rankFor(num('xp')).title, 'rütbe']
+      [s.wpm == null ? '–' : String(s.wpm), t('share_card_wpm')],
+      ['🔥 ' + streak, t('share_card_streak')],
+      [t('rank_' + P.rankFor(num('xp')).index), t('share_card_rank')]
     ];
     items.forEach(function (it, i) {
       var x = 80 + i * 300;
@@ -710,28 +1061,12 @@
   function cardBlob(s, cb) {
     try { drawCard(s).toBlob(function (b) { cb(b); }, 'image/png'); } catch (e) { cb(null); }
   }
-  function note(msg) { var el = $('shareNote'); if (el) el.textContent = msg; }
-
   function wireShare(s) {
-    on('copy', function () {
-      var t = shareText(s);
-      try {
-        navigator.clipboard.writeText(t).then(function () { note('Metin kopyalandı ✓'); }, function () { note('Kopyalanamadı. Metni elle seçip kopyalayabilirsin: ' + t); });
-      } catch (e) { note('Kopyalanamadı. Metni elle seçip kopyalayabilirsin: ' + t); }
-    });
+    on('copy', function () { copyText(shareText(s), 'shareNote', t('share_copied')); });
     on('dl', function () {
       cardBlob(s, function (blob) {
-        if (!blob) { note('Resim oluşturulamadı.'); return; }
-        try {
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = 'konus-sonuc.png';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
-          note('Resim indirildi ✓');
-        } catch (e) { note('Bu ortamda indirme çalışmıyor. Metni kopyalamayı dene.'); }
+        if (!blob) { setNote('shareNote', t('share_img_fail')); return; }
+        setNote('shareNote', saveBlob(blob, 'konus-sonuc.png') ? t('share_dl_ok') : t('share_dl_fail'));
       });
     });
     on('share', function () {
@@ -743,7 +1078,7 @@
           }
           if (navigator.share) { navigator.share({ text: shareText(s) }).catch(function () {}); return; }
         } catch (e) {}
-        note('Bu tarayıcı paylaşımı desteklemiyor. Resmi indirebilir veya metni kopyalayabilirsin.');
+        setNote('shareNote', t('share_unsupported'));
       });
     });
   }
@@ -769,34 +1104,74 @@
     var an = s.an;
     var f = an.fillers;
     var foundTxt = Object.keys(f.found).map(function (k) { return esc(k) + ' ×' + f.found[k]; }).join(', ');
-    var pace = !s.typed && s.words >= 10 ? A.paceLabel(s.wpm) : null;
+    var pk = !s.typed && s.words >= 10 ? A.paceKey(s.wpm) : null;
     var rep = an.repeated.map(function (x) { return esc(x.word) + ' ×' + x.n; }).join(', ');
-    return '<section class="card analysis"><h2>Konuşma analizi</h2>' +
-      '<p>🔤 <b>Farklı kelime:</b> ' + an.unique + ' / ' + an.words + ' (%' + an.ratio + ')</p>' +
-      '<p>🧩 <b>Dolgu ifadeler:</b> ' + (f.count ? f.count + ' (' + foundTxt + ')' : 'Yok 👏') + '</p>' +
-      (rep ? '<p>🔁 <b>Sık tekrar eden:</b> ' + rep + '</p>' : '') +
-      (pace ? '<p>⏱️ <b>Tempo:</b> ' + pace + ' (' + s.wpm + ' kelime/dk)</p>' : '') +
-      (s.cov != null ? '<p>🎯 <b>Okuma doğruluğu:</b> %' + s.cov + '</p>' : '') +
-      '<small>Konuşma tanıma "um", "uh" gibi sesleri bazen yazıya dökmez; sonuçlar yaklaşıktır.</small></section>';
+    return '<section class="card analysis"><h2>' + esc(t('analysis_title')) + '</h2>' +
+      '<p>🔤 <b>' + esc(t('an_unique')) + ':</b> ' + an.unique + ' / ' + an.words + ' (%' + an.ratio + ')</p>' +
+      '<p>🧩 <b>' + esc(t('an_fillers')) + ':</b> ' + (f.count ? f.count + ' (' + foundTxt + ')' : esc(t('an_none'))) + '</p>' +
+      (rep ? '<p>🔁 <b>' + esc(t('an_repeated')) + ':</b> ' + rep + '</p>' : '') +
+      (pk ? '<p>⏱️ <b>' + esc(t('an_pace')) + ':</b> ' + esc(t('pace_' + pk)) + ' (' + s.wpm + ' ' + esc(t('stat_wpm')) + ')</p>' : '') +
+      (s.cov != null ? '<p>🎯 <b>' + esc(t('an_cov')) + ':</b> %' + s.cov + '</p>' : '') +
+      '<small>' + esc(t('an_note')) + '</small></section>';
+  }
+  function tipsHtml(s) {
+    if (!s.tips.length) return '';
+    return '<section class="card"><h2>' + esc(t('tips_title')) + '</h2><ul class="tips">' + s.tips.map(function (x) {
+      return '<li><span class="bad">' + esc(x.bad) + '</span> → <span class="good">' + esc(x.good) + '</span><small>' + esc(x[lang]) + '</small></li>';
+    }).join('') + '</ul><small>' + esc(t('tips_note')) + '</small></section>';
+  }
+  function bandHtml(s) {
+    if (s.band == null) return '';
+    return '<section class="card band"><h2>' + esc(t('band_title')) + '</h2><p class="bandnum">' + s.band.toFixed(1) + '</p><small>' + esc(t('band_note')) + '</small></section>';
   }
   function compareHtml(s) {
-    if (!s.cmp) {
-      return '<section class="card"><h2>Geçen denemeyle kıyas</h2><p class="empty">İlk denemen! Aynı testi bir daha yaptığında burada farkı göreceksin.</p></section>';
-    }
+    if (!s.cmp) return '<section class="card"><h2>' + esc(t('cmp_title')) + '</h2><p class="empty">' + esc(t('cmp_first')) + '</p></section>';
     var c = s.cmp;
-    var chips = '<span class="chip"><span class="delta ' + cls(c.words) + '">' + sign(c.words) + '</span> kelime</span>' +
-      '<span class="chip"><span class="delta ' + cls(c.unique) + '">' + sign(c.unique) + '</span> farklı kelime</span>';
-    if (c.wpm !== null) chips += '<span class="chip"><span class="delta ' + cls(c.wpm) + '">' + sign(c.wpm) + '</span> kelime/dk</span>';
-    return '<section class="card"><h2>Geçen denemeyle kıyas</h2><div class="chips">' + chips + '</div></section>';
+    var chips = '<span class="chip"><span class="delta ' + cls(c.words) + '">' + sign(c.words) + '</span> ' + esc(t('cmp_words')) + '</span>' +
+      '<span class="chip"><span class="delta ' + cls(c.unique) + '">' + sign(c.unique) + '</span> ' + esc(t('cmp_unique')) + '</span>';
+    if (c.wpm !== null) chips += '<span class="chip"><span class="delta ' + cls(c.wpm) + '">' + sign(c.wpm) + '</span> ' + esc(t('cmp_wpm')) + '</span>';
+    return '<section class="card"><h2>' + esc(t('cmp_title')) + '</h2><div class="chips">' + chips + '</div></section>';
   }
   function rewardsHtml(s) {
     var i = s.info;
-    var h = '<div class="xp-banner"><b>+' + (i.xp + i.bonus) + ' XP</b><span>' + esc(P.rankFor(num('xp')).title) + ' · ' + num('xp') + ' XP</span></div>';
-    if (i.rankUp) h += '<div class="alert">🎖️ Yeni rütbe: ' + esc(i.rankUp) + '</div>';
-    i.newBadges.forEach(function (b) { h += '<div class="alert">' + b.emoji + ' Yeni rozet: ' + esc(b.title) + '</div>'; });
-    if (i.challenge) h += '<div class="alert">⭐ Haftalık görev tamamlandı: ' + esc(i.challenge.titleTr) + ' (+50 XP)</div>';
-    if (i.usedFreeze) h += '<div class="alert">❄️ Bir günü kaçırdın ama seri dondurma hakkın seriyi korudu.</div>';
+    var h = '<div class="xp-banner"><b>' + esc(t('xp_plus', { n: i.xp + i.bonus })) + '</b><span>' + esc(t('rank_' + P.rankFor(num('xp')).index)) + ' · ' + num('xp') + ' XP</span></div>';
+    if (i.rankUp != null) h += '<div class="alert">' + esc(t('rankup', { r: t('rank_' + i.rankUp) })) + '</div>';
+    i.newBadges.forEach(function (b) { h += '<div class="alert">' + esc(t('badge_new', { e: b.emoji, b: t('badge_' + b.id + '_t') })) + '</div>'; });
+    if (i.challenge) h += '<div class="alert">' + esc(t('chal_complete', { c: t('chal_' + i.challenge.id) })) + '</div>';
+    if (i.usedFreeze) h += '<div class="alert">' + esc(t('freeze_used')) + '</div>';
+    if (s.vocabAdded) h += '<div class="alert soft">' + esc(t('vocab_saved', { n: s.vocabAdded })) + '</div>';
     return h;
+  }
+  function groupHtml(s) {
+    var ch = s.chal && s.chal.ch;
+    if (!ch) {
+      // not a group round: offer to start one with this result
+      return '<section class="card"><h2>' + esc(t('ch_invite_title')) + '</h2><p class="hint">' + esc(t('ch_invite_sub')) + '</p>' +
+        nickField() + '<div class="row"><button id="gSend">' + esc(t('ch_make_link')) + '</button><button class="ghost" id="gCopy">' + esc(t('ch_copy_link')) + '</button></div>' +
+        '<p class="hint">' + esc(t('ch_privacy_note')) + '</p><p class="hint" id="gNote"></p></section>';
+    }
+    var mine = -1;
+    ch.r.forEach(function (x, i) { if (x.n === s.round.n && x.w === s.round.w && x.u === s.round.u) mine = i; });
+    return '<section class="card"><h2>' + esc(t('ch_group_title')) + '</h2>' + standingsHtml(ch.r, mine) +
+      '<p class="hint" style="margin-top:8px">' + esc(t('ch_your_round')) + '</p>' +
+      '<div class="row"><button id="gSend">' + esc(t('ch_make_link')) + '</button><button class="ghost" id="gCopy">' + esc(t('ch_copy_link')) + '</button></div>' +
+      '<p class="hint">' + esc(t('ch_fun_note')) + '</p><p class="hint" id="gNote"></p></section>';
+  }
+  function wireGroup(s) {
+    function mk() {
+      var nick = readNick() || 'Misafir';
+      var ch = s.chal && s.chal.ch;
+      if (!ch) {
+        ch = Ch.addRound({ d: L.dateKey(new Date()), m: mode, t: testId, lv: level, i: seeds.i, j: seeds.j, r: [] },
+          Ch.makeRound({ n: nick, w: s.round.w, u: s.round.u, p: s.round.p, f: s.round.f }));
+      }
+      var rank = Ch.standings(ch.r).filter(function (x) { return x.n === (s.chal ? s.round.n : nick) && x.w === s.round.w; })[0];
+      var url = Ch.link(siteUrl(), ch);
+      var text = t('ch_text_result', { w: s.round.w, r: rank ? rank.rank : 1, u: '' }).trim();
+      return { url: url, text: text };
+    }
+    on('gSend', function () { var o = mk(); shareOrCopy(o.text, o.url, 'gNote'); });
+    on('gCopy', function () { var o = mk(); copyText(o.text + ' ' + o.url, 'gNote', t('ch_link_copied')); });
   }
 
   function result(s) {
@@ -804,55 +1179,87 @@
     paintPill();
     var hitsHtml = '';
     if (s.hits) {
-      hitsHtml = '<section class="card"><h2>Hedef kelimeler (' + s.hits.hit.length + '/' + (s.hits.hit.length + s.hits.missed.length) + ')</h2><div class="chips">' +
+      hitsHtml = '<section class="card"><h2>' + esc(t('hits_title', { a: s.hits.hit.length, b: s.hits.hit.length + s.hits.missed.length })) + '</h2><div class="chips">' +
         s.hits.hit.map(function (w) { return '<span class="chip hit">✓ ' + esc(w) + '</span>'; }).join('') +
-        s.hits.missed.map(function (w) { return '<span class="chip miss">✗ ' + esc(w) + '</span>'; }).join('') +
-        '</div></section>';
+        s.hits.missed.map(function (w) { return '<span class="chip miss">✗ ' + esc(w) + '</span>'; }).join('') + '</div></section>';
     }
     var body;
     if (s.words === 0) {
-      body =
-        '<section class="card"><p class="empty">Hiç konuşma algılanmadı. Mikrofona biraz yaklaşıp tekrar dene; istersen cevabını yazarak da verebilirsin.</p></section>';
+      body = '<section class="card"><p class="empty">' + esc(t('res_empty')) + '</p></section>';
     } else {
-      body =
-        rewardsHtml(s) +
+      body = rewardsHtml(s) +
         '<div class="result-grid">' +
-          '<div class="stat"><b>' + Math.round(s.seconds) + '</b><span>saniye</span></div>' +
-          '<div class="stat"><b>' + s.words + '</b><span>kelime</span></div>' +
-          '<div class="stat"><b>' + (s.wpm === null ? '–' : s.wpm) + '</b><span>kelime/dk</span></div>' +
+          '<div class="stat"><b>' + Math.round(s.seconds) + '</b><span>' + esc(t('stat_seconds')) + '</span></div>' +
+          '<div class="stat"><b>' + s.words + '</b><span>' + esc(t('stat_words')) + '</span></div>' +
+          '<div class="stat"><b>' + (s.wpm === null ? '–' : s.wpm) + '</b><span>' + esc(t('stat_wpm')) + '</span></div>' +
         '</div>' +
-        analysisHtml(s) +
-        compareHtml(s) +
-        hitsHtml +
-        '<section class="card"><h2>' + (s.typed ? 'Yazdığın' : 'Duyduğumuz') + '</h2><p>' + esc(s.text) + '</p>' +
-          (s.audioUrl ? '<audio class="audio" id="replayAudio" controls src="' + esc(s.audioUrl) + '"></audio>' : '') +
-        '</section>' +
-        '<section class="card"><h2>Paylaş</h2>' +
-          '<div class="row" style="margin-top:0"><button id="share">📤 Paylaş</button><button id="dl">🖼️ Resmi indir</button></div>' +
-          '<div class="row"><button class="ghost" id="copy">📋 Metni kopyala</button></div>' +
+        groupHtml(s) + analysisHtml(s) + bandHtml(s) + tipsHtml(s) + compareHtml(s) + hitsHtml +
+        '<section class="card"><h2>' + esc(s.typed ? t('typed_h') : t('heard')) + '</h2><p>' + esc(s.text) + '</p>' +
+          (s.audioUrl ? '<audio class="audio" id="replayAudio" controls src="' + esc(s.audioUrl) + '"></audio>' : '') + '</section>' +
+        '<section class="card"><h2>' + esc(t('share_title')) + '</h2>' +
+          '<div class="row" style="margin-top:0"><button id="share">' + esc(t('btn_share')) + '</button><button id="dl">' + esc(t('btn_dl')) + '</button></div>' +
+          '<div class="row"><button class="ghost" id="copy">' + esc(t('btn_copy')) + '</button></div>' +
           '<p class="hint" id="shareNote" style="margin-top:8px"></p></section>';
     }
     show(
-      '<p class="eyebrow">Sonuç · ' + esc(s.title) + '</p>' +
-      '<h1>' + (s.words === 0 ? 'Bu sefer olmadı' : 'Aferin, bitirdin!') + '</h1>' +
-      body +
-      '<button class="primary" id="again">Tekrar dene</button>' +
-      '<div class="row"><button id="next">Başka test</button><button class="ghost" id="home">Ana sayfa</button></div>'
+      '<p class="eyebrow">' + esc(t('eyebrow_result', { t: s.title })) + '</p>' +
+      '<h1>' + esc(s.words === 0 ? t('res_bad') : t('res_good')) + '</h1>' + body +
+      '<button class="primary" id="again">' + esc(t('btn_again')) + '</button>' +
+      '<div class="row"><button id="next">' + esc(t('btn_next')) + '</button><button class="ghost" id="home">' + esc(t('btn_home')) + '</button></div>'
     );
-    if (s.words > 0) { confetti(); wireShare(s); }
+    if (s.words > 0) { confetti(); wireShare(s); wireGroup(s); }
     on('again', card);
-    on('next', function () { pickNext(); card(); });
-    on('home', home);
+    on('next', function () {
+      if (chalState) { chalState = null; restoreEnv(); }
+      pickNext();
+      card();
+    });
+    on('home', function () { try { if (location.hash) history.replaceState(null, '', siteUrl()); } catch (e) {} home(); });
   }
 
-  // ---------- tabs ----------
+  // ---------- tabs and boot ----------
   var tabBtns = document.querySelectorAll('.tab');
   for (var ti = 0; ti < tabBtns.length; ti++) {
     tabBtns[ti].addEventListener('click', function (e) {
+      if (!consented) return;
       var name = e.currentTarget.getAttribute('data-tab');
       if (name === 'progress') progress(); else home();
     });
   }
 
-  home();
+  var pendingChallenge = null;
+  var badHash = false;
+  function registerSW() {
+    try {
+      if ('serviceWorker' in navigator && /^https?:$/.test(window.location.protocol)) {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+      }
+    } catch (e) {}
+  }
+  function boot2() {
+    registerSW();
+    paintChrome();
+    if (pendingChallenge) { var c = pendingChallenge; pendingChallenge = null; challengeIntro(c); return; }
+    if (badHash) {
+      badHash = false;
+      home();
+      var box = document.createElement('div');
+      box.className = 'notice';
+      box.textContent = t('ch_invalid');
+      screen.insertBefore(box, screen.firstChild);
+      return;
+    }
+    home();
+  }
+
+  function boot() {
+    var h = window.location.hash || '';
+    pendingChallenge = Ch.parseHash(h);
+    badHash = /^#c=/.test(h) && !pendingChallenge;
+    consented = store.get('consent') === String(CFG.consentVersion);
+    persist = consented;
+    if (!consented) { consent(); return; }
+    boot2();
+  }
+  boot();
 })();

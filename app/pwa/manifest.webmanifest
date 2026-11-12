@@ -1,0 +1,15 @@
+{
+  "name": "Konuş: İngilizce Speaking Pratik",
+  "short_name": "Konuş",
+  "description": "Her gün yeni bir konu, her seferinde farklı bir konuşma testi.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff6ec",
+  "theme_color": "#4b4fbf",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
