@@ -4347,9 +4347,22 @@ button.primary.small { min-height: 48px; font-size: 15px; }
     if (!synth || !synth.getVoices) return null;
     var vs = synth.getVoices() || [];
     var en = vs.filter(function (v) { return /^en/i.test(v.lang); });
-    var m = en.filter(function (v) { return /daniel|alex|david|george|james|thomas|fred|male|google uk english male/i.test(v.name); });
-    var gb = en.filter(function (v) { return /en[-_]GB/i.test(v.lang); });
-    if (male) return m[0] || gb[0] || en[0] || null;
+    if (male) {
+      // Sherlock: a British, deep, crisp male voice. Score every English voice, take the best.
+      var best = null, bestScore = -1;
+      en.forEach(function (v) {
+        var s = 0, n = v.name || '';
+        if (/en[-_]GB/i.test(v.lang)) s += 50;
+        else if (/en[-_](AU|IE|ZA)/i.test(v.lang)) s += 10;
+        if (/google uk english male/i.test(n)) s += 60;
+        if (/arthur|oliver|ryan|thomas|daniel|george|harry|james|malcolm|gordon|rishi/i.test(n)) s += 40;
+        if (/natural|online|neural/i.test(n)) s += 15;
+        if (/\bmale\b/i.test(n)) s += 20;
+        if (/female|susan|hazel|libby|sonia|kate|serena|fiona|moira|samantha|zira|karen|amy|emma|mia|victoria/i.test(n)) s -= 100;
+        if (s > bestScore) { bestScore = s; best = v; }
+      });
+      return best || en[0] || null;
+    }
     return en.filter(function (v) { return /en[-_]US/i.test(v.lang) && !/male\b/i.test(v.name); })[0] || en[0] || null;
   }
   function speakLine(text, male, done) {
@@ -4363,9 +4376,9 @@ button.primary.small { min-height: 48px; font-size: 15px; }
     try {
       synth.cancel();
       var u = new window.SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = 0.92;
-      u.pitch = male ? 0.8 : 1.05;
+      u.lang = male ? 'en-GB' : 'en-US';
+      u.rate = male ? 1.0 : 0.92;   // Sherlock speaks briskly and crisply
+      u.pitch = male ? 0.75 : 1.05; // lower, darker baritone
       var v = pickVoice(male);
       if (v) { u.voice = v; u.lang = v.lang; }
       u.onend = fin;
