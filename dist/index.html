@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>İngilizce Speaking Pratik</title>
+<style>:root {
+  --bg: #f6f5f1;
+  --card: #ffffff;
+  --ink: #1d2327;
+  --muted: #5d676d;
+  --line: #e2e0d8;
+  --accent: #1f6f5c;
+  --accent-ink: #ffffff;
+  --accent-soft: #dff0ea;
+  --warn: #8a4b00;
+  --warn-soft: #fff1dc;
+  --bad: #a32d2d;
+  --good: #1f6f5c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14181a;
+    --card: #1e2427;
+    --ink: #eef1f2;
+    --muted: #a3aeb3;
+    --line: #2f383c;
+    --accent: #4fc3a1;
+    --accent-ink: #0c1f19;
+    --accent-soft: #1d3a31;
+    --warn: #f2b868;
+    --warn-soft: #3a2c14;
+    --bad: #ff8a8a;
+    --good: #4fc3a1;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
+#app { max-width: 560px; margin: 0 auto; padding: 16px 16px 40px; }
+.brand { font-weight: 700; padding: 8px 0 12px; letter-spacing: .2px; }
+.foot { margin-top: 28px; color: var(--muted); font-size: 13px; text-align: center; }
+h1 { font-size: 26px; line-height: 1.2; margin: 4px 0 2px; }
+h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+.eyebrow { color: var(--muted); font-size: 14px; margin: 0; }
+.sub { color: var(--muted); margin: 0 0 16px; }
+.big { font-size: 30px; vertical-align: -3px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { background: var(--accent-soft); color: var(--ink); border-radius: 999px; padding: 6px 12px; font-size: 15px; }
+.chip.hit { background: var(--accent-soft); }
+.chip.miss { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+button {
+  font: inherit;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.primary { width: 100%; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; font-size: 17px; margin-top: 8px; }
+button.ghost { background: transparent; }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.row > button { flex: 1; }
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: center; }
+.stat b { display: block; font-size: 24px; }
+.stat span { color: var(--muted); font-size: 13px; }
+.prompt { font-size: 21px; line-height: 1.35; margin: 4px 0 12px; font-weight: 600; }
+.hint { color: var(--muted); margin: 0 0 4px; }
+.meta { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
+.notice { background: var(--warn-soft); color: var(--warn); border-radius: 12px; padding: 12px 14px; margin: 12px 0; font-size: 15px; }
+.center { text-align: center; padding: 48px 0; }
+.count { font-size: 96px; font-weight: 800; color: var(--accent); }
+.timer { font-size: 44px; font-weight: 800; text-align: center; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.bar { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--accent); transition: width .25s linear; }
+.transcript, textarea {
+  width: 100%;
+  min-height: 150px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  font: inherit;
+  color: var(--ink);
+  margin-top: 12px;
+}
+.transcript { white-space: pre-wrap; }
+.transcript .ghost { color: var(--muted); }
+.result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.empty { color: var(--muted); }
+@media (max-width: 380px) {
+  h1 { font-size: 23px; }
+  .prompt { font-size: 19px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="brand">🎙️ Speaking Pratik</div>
+  <main id="screen" aria-live="polite"></main>
+  <footer class="foot">Konuşman cihazından çıkmaz. Kayıt saklanmaz.</footer>
+</div>
+<script>(function (root) {
+  'use strict';
+
+  var DEFAULT_EPOCH = new Date(2026, 10, 13);
+
+  // Whole local calendar days since epoch. Uses UTC of local Y/M/D parts so DST never skews it.
+  function dayIndex(date, epoch) {
+    var e = epoch || DEFAULT_EPOCH;
+    var a = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    var b = Date.UTC(e.getFullYear(), e.getMonth(), e.getDate());
+    return Math.round((a - b) / 86400000);
+  }
+
+  function pickDaily(list, date) {
+    var n = list.length;
+    return list[((dayIndex(date) % n) + n) % n];
+  }
+
+  function pickTest(types, last, rand) {
+    var r = rand || Math.random;
+    var pool = types.length > 1 ? types.filter(function (t) { return t !== last; }) : types;
+    var i = Math.min(pool.length - 1, Math.floor(r() * pool.length));
+    return pool[i];
+  }
+
+  function normalize(text) {
+    return String(text || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9'À-ɏ\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function countWords(text) {
+    var n = normalize(text);
+    return n ? n.split(' ').length : 0;
+  }
+
+  function targetHits(transcript, targets) {
+    var padded = ' ' + normalize(transcript) + ' ';
+    var hit = [];
+    var missed = [];
+    targets.forEach(function (t) {
+      var needle = ' ' + normalize(t) + ' ';
+      (padded.indexOf(needle) !== -1 ? hit : missed).push(t);
+    });
+    return { hit: hit, missed: missed };
+  }
+
+  function wordsPerMinute(wordCount, seconds) {
+    if (!(seconds > 0)) return 0;
+    return Math.round((wordCount / seconds) * 60);
+  }
+
+  var api = {
+    dayIndex: dayIndex,
+    pickDaily: pickDaily,
+    pickTest: pickTest,
+    normalize: normalize,
+    countWords: countWords,
+    targetHits: targetHits,
+    wordsPerMinute: wordsPerMinute
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.Logic = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+;
+(function (root) {
+  'use strict';
+
+  var LEVELS = ['easy', 'medium', 'hard'];
+  var SECONDS = { easy: 45, medium: 60, hard: 90 };
+
+  function D(theme, themeTr, emoji, words, easy, medium, hard) {
+    return {
+      theme: theme,
+      themeTr: themeTr,
+      emoji: emoji,
+      words: words.split('|'),
+      questions: { easy: easy, medium: medium, hard: hard }
+    };
+  }
+
+  var DAILY = [
+    D("Travel plans", "Seyahat planları", "✈️", "destination|book|itinerary|pack|souvenir",
+      "Where would you like to travel next, and why?",
+      "Describe a trip you would love to plan. Who would you go with and what would you do there?",
+      "Some people plan every detail of a trip, others prefer to improvise. Which style is better, and what have you learned from your own experience?"),
+    D("Favorite food", "Favori yemek", "🍕", "delicious|recipe|ingredient|taste|portion",
+      "What is your favorite food and when do you eat it?",
+      "Describe a dish you love. What does it taste like, and who usually makes it?",
+      "Do you think food culture is changing too fast? Explain how eating habits have changed in your lifetime."),
+    D("Morning routine", "Sabah rutini", "⏰", "wake up|alarm|get ready|commute|breakfast",
+      "What do you do in the morning before you leave home?",
+      "Describe your ideal morning. What would you change about your current routine?",
+      "Is it true that successful people have special morning routines? Give your opinion with examples."),
+    D("Weekend plans", "Hafta sonu planları", "🛋️", "relax|catch up|hang out|errand|spare time",
+      "What do you usually do on weekends?",
+      "Tell me about your last weekend and what made it good or bad.",
+      "Should weekends be for rest only, or is it better to stay productive? Defend your view."),
+    D("Technology in daily life", "Günlük hayatta teknoloji", "📱", "device|update|battery|download|screen time",
+      "Which app or device do you use the most, and why?",
+      "How has your phone changed the way you live? Give two examples.",
+      "Are we too dependent on technology? Discuss both the benefits and the risks."),
+    D("Health and sleep", "Sağlık ve uyku", "😴", "tired|schedule|habit|energy|rest",
+      "How many hours do you sleep, and do you feel rested?",
+      "What habits help you sleep well, and what keeps you awake?",
+      "Why do many people ignore sleep when they are busy, and what could be done about it?"),
+    D("Movies and series", "Film ve diziler", "🎬", "plot|episode|character|recommend|ending",
+      "What is a movie or series you enjoyed recently?",
+      "Describe the plot of a story you loved without spoiling the ending.",
+      "Do movies and series shape how we see the world? Explain with examples."),
+    D("Music", "Müzik", "🎵", "lyrics|playlist|melody|concert|genre",
+      "What kind of music do you like to listen to?",
+      "Tell me about a song that reminds you of a special time in your life.",
+      "Can music change people's mood or behavior? Give reasons and examples."),
+    D("Shopping", "Alışveriş", "🛍️", "afford|discount|receipt|browse|bargain",
+      "Do you like shopping? What do you buy most often?",
+      "Describe the last time you bought something you really wanted. Was it worth it?",
+      "Is online shopping better than going to a store? Compare both and give your conclusion."),
+    D("Weather", "Hava durumu", "☔", "forecast|humid|breeze|drizzle|temperature",
+      "What is the weather like today, and how does it make you feel?",
+      "What is your favorite season and what do you do in it?",
+      "How does weather affect people's mood and daily plans? Share your thoughts."),
+    D("Hobbies", "Hobiler", "🎨", "pastime|skill|practice|enjoy|passion",
+      "What is your favorite hobby and how did you start it?",
+      "Describe a hobby you would like to try. What attracts you to it?",
+      "Do hobbies matter for a person's happiness? Support your opinion with examples."),
+    D("Learning languages", "Dil öğrenme", "🗣️", "vocabulary|fluent|accent|mistake|improve",
+      "Why are you learning English?",
+      "Describe the biggest difficulty in learning a language and how you deal with it.",
+      "Will translation technology make learning languages unnecessary? Argue your position."),
+    D("Friends", "Arkadaşlar", "🤝", "trust|support|close|get along|loyal",
+      "Tell me about your best friend.",
+      "What makes a good friend? Give an example from your life.",
+      "Is it harder to make friends as an adult? Explain what changes over time."),
+    D("Family", "Aile", "👨‍👩‍👧", "relative|grow up|generation|tradition|gather",
+      "Who is in your family, and what do you like doing together?",
+      "Describe a family tradition that is important to you.",
+      "How has the role of the family changed in modern life? Share examples."),
+    D("Work and careers", "İş ve kariyer", "💼", "colleague|deadline|promotion|responsibility|salary",
+      "What kind of job would you like to have in the future?",
+      "Describe your dream career and the steps you need to reach it.",
+      "Is job satisfaction more important than salary? Discuss with examples."),
+    D("University life", "Üniversite hayatı", "🎓", "lecture|assignment|semester|campus|major",
+      "What do you study and why did you choose it?",
+      "Describe a typical week at university. What do you enjoy and what is difficult?",
+      "Should universities focus more on practical skills than theory? Give your opinion."),
+    D("Cooking at home", "Evde yemek yapmak", "🍳", "chop|boil|season|stir|leftovers",
+      "Can you cook? What is the easiest meal you can make?",
+      "Explain how to make a simple dish step by step.",
+      "Is cooking at home really healthier and cheaper than eating out? Explain your view."),
+    D("City vs village", "Şehir ve köy", "🏙️", "crowded|peaceful|noise|convenient|rural",
+      "Do you prefer living in a city or in a small town? Why?",
+      "Compare life in a big city with life in the countryside.",
+      "Why are so many people moving to cities, and what problems does this create?"),
+    D("Public transport", "Toplu taşıma", "🚌", "ticket|route|delay|rush hour|station",
+      "How do you usually get to school or work?",
+      "Describe a problem you had while using public transport and how you solved it.",
+      "How could cities improve public transport to reduce traffic? Suggest ideas."),
+    D("Social media", "Sosyal medya", "💬", "post|follower|scroll|privacy|influence",
+      "Which social media do you use and how often?",
+      "What are the good and bad sides of social media in your life?",
+      "Should there be age limits for social media? Explain why or why not."),
+    D("Sports", "Spor", "🏃", "match|train|compete|team|win",
+      "What sports do you like to watch or play?",
+      "Describe an exciting sports moment you remember.",
+      "Do sports teach important life lessons? Discuss using examples."),
+    D("Books", "Kitaplar", "📚", "author|chapter|borrow|bookmark|bestseller",
+      "Do you like reading? What was the last book you read?",
+      "Describe a book that changed the way you think.",
+      "Will printed books disappear in the future? Give your opinion."),
+    D("Money and saving", "Para ve tasarruf", "💰", "budget|save|expense|invest|afford",
+      "Do you save money? What do you want to save for?",
+      "How do you manage your money each month? Give some tips.",
+      "Should schools teach financial education? Explain how it could help young people."),
+    D("Holidays and celebrations", "Bayram ve kutlamalar", "🎉", "celebrate|decorate|feast|guest|custom",
+      "What is your favorite holiday and why?",
+      "Describe how you celebrate an important day with your family or friends.",
+      "Are traditional celebrations losing their meaning today? Share your view."),
+    D("Pets", "Evcil hayvanlar", "🐶", "adopt|feed|loyal|stray|cuddle",
+      "Do you have a pet, or would you like one? Which animal?",
+      "Describe the responsibilities of having a pet.",
+      "Should people adopt animals from shelters instead of buying them? Argue your opinion."),
+    D("Environment", "Çevre", "🌍", "recycle|pollution|waste|renewable|climate",
+      "What do you do at home to protect the environment?",
+      "What is the biggest environmental problem in your city and what can be done?",
+      "Who should do more about the environment: individuals or governments? Explain."),
+    D("Fashion", "Moda", "👗", "outfit|trend|style|comfortable|wardrobe",
+      "What kind of clothes do you like to wear?",
+      "Describe your favorite outfit and where you wear it.",
+      "Does fashion help people express themselves, or does it pressure them? Discuss."),
+    D("Coffee and cafes", "Kahve ve kafeler", "☕", "brew|menu|cozy|order|barista",
+      "Do you like coffee or tea? Where do you usually drink it?",
+      "Describe your ideal cafe. What would it look like?",
+      "Why have cafes become popular places to study and work? Share your thoughts."),
+    D("Childhood memories", "Çocukluk anıları", "🧸", "childhood|remember|playground|neighborhood|innocent",
+      "What did you like to do as a child?",
+      "Tell me about a happy memory from your childhood.",
+      "How is childhood today different from when you were young? Compare them."),
+    D("Dreams and goals", "Hayaller ve hedefler", "🎯", "achieve|ambition|goal|determined|plan",
+      "What is one goal you have for this year?",
+      "Describe a big dream you have and what you are doing to reach it.",
+      "Is it better to follow your dream or choose a safe path? Give reasons."),
+    D("Online learning", "Online öğrenme", "💻", "course|lesson|platform|self-paced|certificate",
+      "Have you ever taken an online course? What was it about?",
+      "What are the advantages and disadvantages of studying online?",
+      "Can online education fully replace classrooms? Explain your position."),
+    D("Neighbors", "Komşular", "🏘️", "neighbor|borrow|noisy|polite|community",
+      "Do you know your neighbors? What are they like?",
+      "Describe a time a neighbor helped you or you helped a neighbor.",
+      "Why do people in big cities often not know their neighbors, and does it matter?"),
+    D("Restaurants", "Restoranlar", "🍽️", "reservation|waiter|bill|tip|service",
+      "What is your favorite restaurant and what do you order there?",
+      "Describe a good or bad experience you had in a restaurant.",
+      "What makes a restaurant truly successful: food, service, or atmosphere? Explain."),
+    D("Gifts", "Hediyeler", "🎁", "present|wrap|surprise|thoughtful|occasion",
+      "What was the best gift you ever received?",
+      "How do you choose a gift for someone? Give an example.",
+      "Is giving experiences better than giving objects? Explain your opinion."),
+    D("Time management", "Zaman yönetimi", "⏳", "prioritize|procrastinate|schedule|distraction|productive",
+      "Are you good at managing your time? Why or why not?",
+      "What do you do when you have too many tasks at once?",
+      "Why do so many people procrastinate, and what are effective ways to stop?"),
+    D("Stress and relaxing", "Stres ve dinlenme", "🧘", "stressed|overwhelmed|unwind|breathe|balance",
+      "What do you do to relax after a long day?",
+      "Describe a stressful situation and how you handled it.",
+      "How can schools and workplaces help people manage stress better?"),
+    D("Video games", "Video oyunları", "🎮", "level|player|console|online|challenge",
+      "Do you play video games? Which ones do you like?",
+      "Describe a game you enjoyed and explain why it was fun.",
+      "Are video games a waste of time or a useful skill-builder? Discuss both sides."),
+    D("Photography", "Fotoğrafçılık", "📷", "capture|angle|lighting|portrait|memory",
+      "Do you like taking photos? What do you usually photograph?",
+      "Describe a photo that is special to you and why.",
+      "Do we enjoy moments less because we are always taking pictures? Give your opinion."),
+    D("Nature and hiking", "Doğa ve yürüyüş", "🥾", "trail|scenery|summit|fresh air|wildlife",
+      "Do you like spending time in nature? Where do you go?",
+      "Describe a walk or hike you remember and what you saw.",
+      "Why do people feel better after spending time in nature? Explain."),
+    D("Beach and sea", "Plaj ve deniz", "🏖️", "sand|wave|sunscreen|swim|shore",
+      "Do you like the sea? What do you do at the beach?",
+      "Describe your perfect day by the sea.",
+      "How does mass tourism affect beaches and coastal towns? Share your thoughts."),
+    D("Technology of the future", "Geleceğin teknolojisi", "🤖", "artificial|automate|breakthrough|innovation|replace",
+      "What technology would you like to see in the future?",
+      "How do you think daily life will be different in 20 years?",
+      "Will robots and AI take over most jobs? Explain what people should do to prepare."),
+    D("Job interviews", "İş görüşmeleri", "🧑‍💼", "resume|qualification|strength|weakness|experience",
+      "Have you ever had a job interview? How did it feel?",
+      "What would you say if an interviewer asked you to describe yourself?",
+      "What makes a candidate stand out in an interview? Give advice with examples."),
+    D("Teamwork", "Takım çalışması", "👥", "cooperate|contribute|conflict|role|share",
+      "Do you like working in a team or alone?",
+      "Describe a time you worked in a group. What was your role?",
+      "How should a team deal with a member who does not do their share?"),
+    D("Customer service", "Müşteri hizmetleri", "☎️", "complaint|refund|helpful|wait|solution",
+      "Have you ever called a customer service line? Why?",
+      "Describe a time you made a complaint and what happened.",
+      "What are the qualities of excellent customer service? Give your view."),
+    D("Hotels and trips", "Oteller ve konaklama", "🏨", "check in|reception|suite|view|stay",
+      "What do you look for in a good hotel?",
+      "Describe a place you stayed at that you liked or disliked.",
+      "Are homestays and apartments better than hotels? Compare the options."),
+    D("Airports", "Havalimanları", "🛫", "boarding|luggage|gate|customs|flight",
+      "How do you feel about flying?",
+      "Describe what happens from arriving at the airport until you sit on the plane.",
+      "What would improve the airport experience for travelers? Suggest ideas."),
+    D("Doctor visit", "Doktor ziyareti", "🩺", "symptom|appointment|prescription|checkup|recover",
+      "When did you last visit a doctor, and why?",
+      "How do you take care of yourself when you feel sick?",
+      "Should people see a doctor regularly even when they feel fine? Explain."),
+    D("Home and furniture", "Ev ve mobilya", "🛋️", "cozy|furniture|decorate|spacious|tidy",
+      "Describe your room or home.",
+      "How would you decorate your dream home?",
+      "Do people spend too much money on their homes? Share your thoughts."),
+    D("Moving to a new place", "Yeni bir yere taşınmak", "📦", "relocate|settle in|unpack|adapt|homesick",
+      "Have you ever moved to a new place? How was it?",
+      "What would you miss most if you moved to another country?",
+      "What is the hardest part of adapting to a new city or culture, and how can it be made easier?"),
+    D("Volunteering", "Gönüllülük", "🙌", "volunteer|charity|donate|community|rewarding",
+      "Would you like to volunteer? What would you do?",
+      "Describe a cause you care about and how you could help.",
+      "Should volunteering be required at school? Argue your opinion."),
+    D("News", "Haberler", "📰", "headline|breaking|reliable|source|report",
+      "How do you follow the news?",
+      "Describe a news story that interested you recently.",
+      "How can we tell whether a news source is reliable? Give advice."),
+    D("Art and museums", "Sanat ve müzeler", "🖼️", "exhibit|painting|sculpture|admire|gallery",
+      "Do you like museums or art? What do you enjoy?",
+      "Describe a museum or an artwork you would recommend.",
+      "Is art important for society, or is it a luxury? Explain your view."),
+    D("Festivals", "Festivaller", "🎪", "crowd|performance|ticket|atmosphere|lineup",
+      "Have you ever been to a festival or a big event?",
+      "Describe the atmosphere at an event you attended.",
+      "Why are festivals so popular, and who benefits from them?"),
+    D("Cars and driving", "Araba ve sürüş", "🚗", "traffic|license|fuel|parking|accident",
+      "Do you drive, or would you like to learn?",
+      "Describe the traffic in your city and how it affects you.",
+      "Will electric and self-driving cars change how we live? Share your thoughts."),
+    D("Fitness", "Spor ve zindelik", "💪", "workout|stamina|muscle|healthy|routine",
+      "Do you exercise? What do you do to stay active?",
+      "How could you build a regular fitness routine? Describe your plan.",
+      "Why do many people stop exercising after a few weeks, and how can they stay motivated?"),
+    D("Breakfast", "Kahvaltı", "🥐", "toast|cereal|skip|filling|brunch",
+      "What do you usually eat for breakfast?",
+      "Describe the perfect breakfast and where you would eat it.",
+      "Is breakfast really the most important meal of the day? Give your opinion."),
+    D("Inventions", "İcatlar", "💡", "invention|invent|device|useful|discover",
+      "Which invention could you not live without?",
+      "Describe an invention that changed the world and how.",
+      "If you could invent something to solve a daily problem, what would it be and how would it work?"),
+    D("Role models", "Rol modeller", "🌟", "admire|inspire|role model|achievement|example",
+      "Who do you admire and why?",
+      "Describe a person who has inspired you and what you learned from them.",
+      "Should public figures be role models for young people? Explain your view."),
+    D("Mistakes and learning", "Hatalar ve öğrenme", "🔄", "mistake|lesson|regret|improve|fail",
+      "Tell me about a mistake you made and what happened.",
+      "How do you react when you fail at something? Give an example.",
+      "Is failure necessary for success? Discuss with real-life examples."),
+    D("Cultures and traditions", "Kültürler ve gelenekler", "🎎", "culture|custom|heritage|ritual|respect",
+      "What is a tradition from your country that you like?",
+      "Describe a custom from another country that you find interesting.",
+      "How can we preserve traditions in a globalized world? Share your thoughts.")
+  ];
+
+  function lvl(l) { return SECONDS[l] || 60; }
+
+  var TESTS = [
+    {
+      id: 'free',
+      titleTr: 'Serbest konuşma',
+      build: function (d, l) {
+        return {
+          promptEn: d.questions[l],
+          hintTr: 'Cevabını bir örnekle destekle ve fikirlerini “because” ile bağla.',
+          seconds: lvl(l)
+        };
+      }
+    },
+    {
+      id: 'describe',
+      titleTr: 'Görsel betimleme',
+      build: function (d, l) {
+        var extra = l === 'easy' ? 'Say what you see and what people are doing.'
+          : l === 'medium' ? 'Say what you see, what people are doing, and how it makes you feel.'
+          : 'Describe the scene in detail, imagine what happened before and after, and say how you feel about it.';
+        return {
+          promptEn: 'Imagine this scene about “' + d.theme + '”: ' + d.emoji + '  ' + extra,
+          hintTr: 'Gördüklerini sırayla anlat: önce genel manzara, sonra detaylar.',
+          seconds: lvl(l)
+        };
+      }
+    },
+    {
+      id: 'opinion',
+      titleTr: 'Katıl ya da karşı çık',
+      build: function (d, l) {
+        var n = l === 'easy' ? 'one reason' : l === 'medium' ? 'two reasons' : 'two reasons and a counter-argument';
+        return {
+          promptEn: 'Do you agree or disagree? “' + d.theme + '” has a bigger effect on our lives than most people think. Give ' + n + '.',
+          hintTr: 'Önce görüşünü söyle (I agree / I disagree), sonra nedenlerini ver.',
+          seconds: lvl(l)
+        };
+      }
+    },
+    {
+      id: 'story',
+      titleTr: 'Hikâye tamamlama',
+      build: function (d, l) {
+        return {
+          promptEn: 'Continue the story: “It was an ordinary day, but something unexpected happened that had to do with ' + d.theme.toLowerCase() + '…”',
+          hintTr: 'Kim, nerede, ne oldu, sonunda ne oldu? Geçmiş zaman kullan.',
+          seconds: lvl(l)
+        };
+      }
+    },
+    {
+      id: 'targets',
+      titleTr: 'Hedef kelimelerle konuş',
+      build: function (d, l) {
+        return {
+          promptEn: 'Talk about “' + d.theme + '” and try to use all of these words or phrases: ' + d.words.join(', ') + '.',
+          hintTr: 'Her kelimeyi bir cümlede kullanmaya çalış. Sonuçta hangilerini kullandığını göreceksin.',
+          seconds: lvl(l),
+          targets: d.words.slice()
+        };
+      }
+    },
+    {
+      id: 'roleplay',
+      titleTr: 'Rol yapma',
+      build: function (d, l) {
+        return {
+          promptEn: 'You are talking to a friend about “' + d.theme + '”. Your friend asks: “' + d.questions[l] + '” Answer naturally and ask your friend a question back.',
+          hintTr: 'Sanki gerçekten sohbet ediyormuşsun gibi konuş; sonda karşı soru sor.',
+          seconds: lvl(l)
+        };
+      }
+    },
+    {
+      id: 'repeat',
+      titleTr: 'Dinle ve tekrar et',
+      build: function (d, l) {
+        return {
+          promptEn: 'Listen to the sentence, repeat it as clearly as you can, then answer it in one or two more sentences.',
+          hintTr: 'Dinle, aynen tekrar et, sonra cümleyi kendi cevabınla devam ettir.',
+          seconds: 30,
+          speakText: d.questions[l]
+        };
+      }
+    }
+  ];
+
+  var api = { LEVELS: LEVELS, DAILY: DAILY, TESTS: TESTS };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.Content = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+;
+(function () {
+  'use strict';
+
+  var L = window.Logic;
+  var C = window.Content;
+  var screen = document.getElementById('screen');
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  var synth = window.speechSynthesis || null;
+
+  // ---------- storage (always try/catch, in-memory fallback) ----------
+  var mem = {};
+  var store = {
+    get: function (k) {
+      try {
+        var v = window.localStorage.getItem('spk_' + k);
+        if (v !== null) return v;
+      } catch (e) {}
+      return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null;
+    },
+    set: function (k, v) {
+      mem[k] = String(v);
+      try { window.localStorage.setItem('spk_' + k, String(v)); } catch (e) {}
+    }
+  };
+
+  // ---------- helpers ----------
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function $(id) { return document.getElementById(id); }
+  function on(id, fn) { var el = $(id); if (el) el.addEventListener('click', fn); }
+  function show(html) { screen.innerHTML = html; window.scrollTo(0, 0); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function dateLabel(d) {
+    try { return d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+    catch (e) { return dateKey(d); }
+  }
+  function mmss(sec) {
+    sec = Math.max(0, Math.ceil(sec));
+    return Math.floor(sec / 60) + ':' + pad(sec % 60);
+  }
+  var LEVEL_TR = { easy: 'Kolay', medium: 'Orta', hard: 'Zor' };
+
+  // ---------- state ----------
+  var today = new Date();
+  var daily = L.pickDaily(C.DAILY, today);
+  var ids = C.TESTS.map(function (t) { return t.id; });
+  var level = store.get('level');
+  if (C.LEVELS.indexOf(level) === -1) level = 'medium';
+  var testId = L.pickTest(ids, store.get('lastTest'));
+  store.set('lastTest', testId);
+
+  var run = null;       // active recording session
+  var cdTimer = null;   // countdown timer
+
+  function currentTest() {
+    return C.TESTS.filter(function (t) { return t.id === testId; })[0];
+  }
+  function currentBuild() { return currentTest().build(daily, level); }
+
+  // ---------- streak and totals ----------
+  function streakInfo() {
+    var last = store.get('streakLast');
+    var n = parseInt(store.get('streak') || '0', 10) || 0;
+    var y = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+    if (last === dateKey(new Date()) || last === dateKey(y)) return n;
+    return 0;
+  }
+  function recordDone() {
+    var now = new Date();
+    var key = dateKey(now);
+    var last = store.get('streakLast');
+    var n = parseInt(store.get('streak') || '0', 10) || 0;
+    if (last !== key) {
+      var y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      n = last === dateKey(y) ? n + 1 : 1;
+      store.set('streak', n);
+      store.set('streakLast', key);
+    }
+    store.set('done', (parseInt(store.get('done') || '0', 10) || 0) + 1);
+  }
+
+  // ---------- cleanup ----------
+  function stopAll() {
+    if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+    if (run) {
+      run.done = true;
+      if (run.timer) clearInterval(run.timer);
+      if (run.rec) { try { run.rec.onend = null; run.rec.abort(); } catch (e) {} }
+      run = null;
+    }
+    if (synth) { try { synth.cancel(); } catch (e) {} }
+  }
+
+  // ---------- screens ----------
+  function home() {
+    stopAll();
+    var chips = daily.words.map(function (w) { return '<span class="chip">' + esc(w) + '</span>'; }).join('');
+    var levels = C.LEVELS.map(function (l) {
+      return '<button data-level="' + l + '" class="' + (l === level ? 'on' : '') + '" aria-pressed="' + (l === level) + '">' + LEVEL_TR[l] + '</button>';
+    }).join('');
+    var notice = SR ? '' :
+      '<div class="notice">Tarayıcın konuşma tanımayı desteklemiyor. Chrome veya Edge ile konuşarak pratik yapabilirsin. Şimdilik cevabını yazarak verebilirsin.</div>';
+    show(
+      '<header>' +
+        '<p class="eyebrow">Günün konusu · ' + esc(dateLabel(today)) + '</p>' +
+        '<h1><span class="big">' + daily.emoji + '</span> ' + esc(daily.themeTr) + '</h1>' +
+        '<p class="sub">' + esc(daily.theme) + '</p>' +
+      '</header>' +
+      '<section class="card"><h2>Bugünün hedef kelimeleri</h2><div class="chips">' + chips + '</div></section>' +
+      '<section class="card"><h2>Seviye</h2><div class="seg" role="group" aria-label="Seviye">' + levels + '</div></section>' +
+      '<div class="stats">' +
+        '<div class="stat"><b>' + streakInfo() + '</b><span>gün seri</span></div>' +
+        '<div class="stat"><b>' + (parseInt(store.get('done') || '0', 10) || 0) + '</b><span>tamamlanan test</span></div>' +
+      '</div>' +
+      notice +
+      '<button class="primary" id="go">Bugünkü testi başlat</button>'
+    );
+    var btns = screen.querySelectorAll('[data-level]');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function (e) {
+        level = e.currentTarget.getAttribute('data-level');
+        store.set('level', level);
+        home();
+      });
+    }
+    on('go', card);
+  }
+
+  function card() {
+    stopAll();
+    var t = currentTest();
+    var b = currentBuild();
+    show(
+      '<p class="eyebrow">Bugünkü test</p>' +
+      '<h1>' + esc(t.titleTr) + '</h1>' +
+      '<p class="meta">' + LEVEL_TR[level] + ' · ' + b.seconds + ' sn</p>' +
+      '<section class="card">' +
+        '<p class="prompt">' + esc(b.promptEn) + '</p>' +
+        '<p class="hint">💡 ' + esc(b.hintTr) + '</p>' +
+      '</section>' +
+      '<button class="primary" id="start">Başla</button>' +
+      '<div class="row"><button class="ghost" id="other">Başka test</button><button class="ghost" id="back">Geri</button></div>'
+    );
+    on('start', countdown);
+    on('other', function () {
+      testId = L.pickTest(ids, testId);
+      store.set('lastTest', testId);
+      card();
+    });
+    on('back', home);
+  }
+
+  function countdown() {
+    stopAll();
+    var n = 3;
+    show('<div class="center"><p class="eyebrow">Hazır ol</p><div class="count" id="cnt">' + n + '</div></div>');
+    cdTimer = setInterval(function () {
+      n--;
+      if (n <= 0) {
+        clearInterval(cdTimer);
+        cdTimer = null;
+        var b = currentBuild();
+        if (b.speakText) listen(b); else record(b);
+      } else {
+        var el = $('cnt');
+        if (el) el.textContent = n;
+      }
+    }, 1000);
+  }
+
+  function listen(b) {
+    show(
+      '<p class="eyebrow">Dinle</p>' +
+      '<h1>Cümleyi dinle</h1>' +
+      '<section class="card"><p class="prompt">' + esc(b.speakText) + '</p></section>' +
+      '<div class="row"><button id="replay">🔊 Tekrar dinle</button></div>' +
+      '<button class="primary" id="speak">Konuşmaya başla</button>'
+    );
+    function say() {
+      if (!synth || !window.SpeechSynthesisUtterance) return;
+      try {
+        synth.cancel();
+        var u = new window.SpeechSynthesisUtterance(b.speakText);
+        u.lang = 'en-US';
+        u.rate = 0.9;
+        synth.speak(u);
+      } catch (e) {}
+    }
+    on('replay', say);
+    on('speak', function () { if (synth) { try { synth.cancel(); } catch (e) {} } record(b); });
+    say();
+  }
+
+  function record(b) {
+    run = {
+      limit: b.seconds,
+      startedAt: Date.now(),
+      typed: !SR,
+      base: '',
+      final: '',
+      interim: '',
+      done: false,
+      rec: null,
+      timer: null,
+      build: b
+    };
+    var body = SR
+      ? '<div class="transcript" id="tr" aria-live="polite"><span class="ghost">Konuşmaya başla, söylediklerin burada yazılır…</span></div>'
+      : '<textarea id="typed" placeholder="Cevabını İngilizce yaz…" aria-label="Cevabın"></textarea>';
+    show(
+      '<p class="eyebrow">' + esc(currentTest().titleTr) + '</p>' +
+      '<div class="timer" id="time">' + mmss(b.seconds) + '</div>' +
+      '<div class="bar"><i id="fill"></i></div>' +
+      '<p class="hint" style="margin-top:12px">' + esc(b.promptEn) + '</p>' +
+      '<div id="note"></div>' +
+      '<div id="body">' + body + '</div>' +
+      '<button class="primary" id="finish">Bitir</button>'
+    );
+    on('finish', finish);
+    if (SR) startRec();
+    run.timer = setInterval(tick, 250);
+  }
+
+  function startRec() {
+    var rec;
+    try { rec = new SR(); } catch (e) { switchToTyped(); return; }
+    run.rec = rec;
+    rec.lang = 'en-US';
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = function (e) {
+      var f = '';
+      var i = '';
+      for (var k = 0; k < e.results.length; k++) {
+        var r = e.results[k];
+        if (r.isFinal) f += r[0].transcript + ' '; else i += r[0].transcript;
+      }
+      if (run) { run.final = f; run.interim = i; paintTranscript(); }
+    };
+    rec.onerror = function (e) {
+      if (!run) return;
+      var code = e && e.error;
+      if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture' || code === 'network') {
+        switchToTyped(code);
+      }
+    };
+    rec.onend = function () {
+      if (!run || run.done || run.typed) return;
+      run.base += run.final;
+      run.final = '';
+      run.interim = '';
+      try { rec.start(); } catch (e) {}
+    };
+    try { rec.start(); } catch (e) { switchToTyped(); }
+  }
+
+  function liveText() {
+    if (!run) return '';
+    return (run.base + run.final + run.interim).trim();
+  }
+
+  function paintTranscript() {
+    var el = $('tr');
+    if (!el || !run) return;
+    var t = liveText();
+    el.textContent = t || 'Konuşmaya başla, söylediklerin burada yazılır…';
+  }
+
+  function switchToTyped(code) {
+    if (!run || run.typed) return;
+    var text = liveText();
+    run.typed = true;
+    if (run.rec) { try { run.rec.onend = null; run.rec.abort(); } catch (e) {} }
+    var msg = code === 'not-allowed' || code === 'service-not-allowed'
+      ? 'Mikrofon izni verilmedi. Cevabını yazarak verebilirsin.'
+      : code === 'network'
+        ? 'Konuşma tanıma için internet bağlantısı gerekiyor. Cevabını yazarak verebilirsin.'
+        : 'Mikrofon kullanılamıyor. Cevabını yazarak verebilirsin.';
+    var note = $('note');
+    if (note) note.innerHTML = '<div class="notice">' + esc(msg) + '</div>';
+    var body = $('body');
+    if (body) {
+      body.innerHTML = '<textarea id="typed" aria-label="Cevabın"></textarea>';
+      var ta = $('typed');
+      if (ta) ta.value = text;
+    }
+  }
+
+  function tick() {
+    if (!run || run.done) return;
+    var elapsed = (Date.now() - run.startedAt) / 1000;
+    var left = run.limit - elapsed;
+    var t = $('time');
+    var f = $('fill');
+    if (t) t.textContent = mmss(left);
+    if (f) f.style.width = Math.max(0, (left / run.limit) * 100) + '%';
+    if (left <= 0) finish();
+  }
+
+  function finish() {
+    if (!run || run.done) return;
+    var r = run;
+    r.done = true;
+    if (r.timer) clearInterval(r.timer);
+    var text;
+    if (r.typed) {
+      var ta = $('typed');
+      text = ta ? ta.value : '';
+    } else {
+      text = liveText();
+    }
+    if (r.rec) { try { r.rec.onend = null; r.rec.abort(); } catch (e) {} }
+    if (synth) { try { synth.cancel(); } catch (e) {} }
+    var seconds = Math.min(r.limit, (Date.now() - r.startedAt) / 1000);
+    var words = L.countWords(text);
+    var hits = r.build.targets ? L.targetHits(text, r.build.targets) : null;
+    run = null;
+    if (words > 0) recordDone();
+    result({
+      text: text.trim(),
+      seconds: seconds,
+      words: words,
+      wpm: r.typed ? null : L.wordsPerMinute(words, seconds),
+      typed: r.typed,
+      hits: hits,
+      speakText: r.build.speakText || null
+    });
+  }
+
+  function result(s) {
+    var hitsHtml = '';
+    if (s.hits) {
+      hitsHtml = '<section class="card"><h2>Hedef kelimeler (' + s.hits.hit.length + '/' + (s.hits.hit.length + s.hits.missed.length) + ')</h2><div class="chips">' +
+        s.hits.hit.map(function (w) { return '<span class="chip hit">✓ ' + esc(w) + '</span>'; }).join('') +
+        s.hits.missed.map(function (w) { return '<span class="chip miss">✗ ' + esc(w) + '</span>'; }).join('') +
+        '</div></section>';
+    }
+    var body;
+    if (s.words === 0) {
+      body =
+        '<section class="card"><p class="empty">Hiç konuşma algılanmadı. Mikrofona biraz yaklaşıp tekrar dene; istersen cevabını yazarak da verebilirsin.</p></section>';
+    } else {
+      body =
+        '<div class="result-grid">' +
+          '<div class="stat"><b>' + Math.round(s.seconds) + '</b><span>saniye</span></div>' +
+          '<div class="stat"><b>' + s.words + '</b><span>kelime</span></div>' +
+          '<div class="stat"><b>' + (s.wpm === null ? '–' : s.wpm) + '</b><span>kelime/dk</span></div>' +
+        '</div>' +
+        hitsHtml +
+        '<section class="card"><h2>' + (s.typed ? 'Yazdığın' : 'Duyduğumuz') + '</h2><p>' + esc(s.text) + '</p></section>';
+    }
+    show(
+      '<p class="eyebrow">Sonuç</p>' +
+      '<h1>' + (s.words === 0 ? 'Bu sefer olmadı' : 'Aferin, bitirdin!') + '</h1>' +
+      body +
+      '<button class="primary" id="again">Tekrar dene</button>' +
+      '<div class="row"><button id="next">Başka test</button><button class="ghost" id="home">Ana sayfa</button></div>'
+    );
+    on('again', card);
+    on('next', function () {
+      testId = L.pickTest(ids, testId);
+      store.set('lastTest', testId);
+      card();
+    });
+    on('home', home);
+  }
+
+  home();
+})();
+</script>
+</body>
+</html>
