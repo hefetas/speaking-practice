@@ -9,10 +9,17 @@
 </head>
 <body>
 <div id="app">
-  <div class="brand">🎙️ Speaking Pratik</div>
+  <header class="top">
+    <div class="logo"><span class="logo-dot">🎙️</span> Konuş</div>
+    <div class="pill" id="streakPill" aria-live="polite"></div>
+  </header>
   <main id="screen" aria-live="polite"></main>
-  <footer class="foot">Konuşman cihazından çıkmaz. Kayıt saklanmaz.</footer>
+  <p class="foot">Konuşman cihazından çıkmaz. Kayıt saklanmaz.</p>
 </div>
+<nav class="tabs" id="tabs" aria-label="Ana menü">
+  <button data-tab="today" class="tab on"><span class="tab-ico">☀️</span><span>Bugün</span></button>
+  <button data-tab="progress" class="tab"><span class="tab-ico">📈</span><span>İlerleme</span></button>
+</nav>
 <script>/*INLINE_JS*/</script>
 </body>
 </html>

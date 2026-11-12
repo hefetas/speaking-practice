@@ -52,7 +52,34 @@
     return Math.round((wordCount / seconds) * 60);
   }
 
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function dateKey(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  // Monday..Sunday keys of the local week containing `date`.
+  function weekKeys(date) {
+    var back = (date.getDay() + 6) % 7; // Monday = 0
+    var keys = [];
+    for (var i = 0; i < 7; i++) {
+      keys.push(dateKey(new Date(date.getFullYear(), date.getMonth(), date.getDate() - back + i)));
+    }
+    return keys;
+  }
+
+  // csv of day keys; adds `key` once and keeps only the latest `keep` entries.
+  function addDay(csv, key, keep) {
+    var list = csv ? String(csv).split(',').filter(Boolean) : [];
+    if (list.indexOf(key) === -1) list.push(key);
+    var max = keep || 60;
+    return list.slice(-max).join(',');
+  }
+
   var api = {
+    dateKey: dateKey,
+    weekKeys: weekKeys,
+    addDay: addDay,
     dayIndex: dayIndex,
     pickDaily: pickDaily,
     pickTest: pickTest,

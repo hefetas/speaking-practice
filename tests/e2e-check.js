@@ -77,9 +77,14 @@ async function startTest(page) {
   assert.ok(res.includes('6'), 'word count missing: ' + res);
   assert.ok(res.includes('–'), 'typed mode must not show a fake wpm');
   await page.click('#home');
+  assert.ok((await page.textContent('#streakPill')).includes('1'), 'streak pill not updated');
+  assert.ok(await page.$('.dot.done'), 'week strip has no done day');
+  assert.ok((await page.textContent('.goal')).includes('1/2'), 'goal ring not updated');
+  await page.click('.tab[data-tab=progress]');
   const stats = await page.textContent('.stats');
   assert.ok(/1\s*gün seri/.test(stats) && /1\s*tamamlanan/.test(stats), 'streak/done not updated: ' + stats);
   console.log('4 ok  no-SR fallback, typed result, streak = 1');
+  await page.click('.tab[data-tab=today]');
 
   // 5. Empty answer: honest result, no counters moved
   await startTest(page);
@@ -88,6 +93,7 @@ async function startTest(page) {
   assert.ok((await page.textContent('h1')).includes('olmadı'));
   assert.ok(!(await page.$('.result-grid')), 'stats shown for empty answer');
   await page.click('#home');
+  await page.click('.tab[data-tab=progress]');
   assert.ok(/1\s*tamamlanan/.test(await page.textContent('.stats')), 'empty run was counted');
   assert.deepStrictEqual(errors, [], 'console errors: ' + errors.join('; '));
   console.log('5 ok  empty answer handled');

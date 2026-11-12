@@ -6,33 +6,39 @@
 <meta name="color-scheme" content="light dark">
 <title>İngilizce Speaking Pratik</title>
 <style>:root {
-  --bg: #f6f5f1;
-  --card: #ffffff;
-  --ink: #1d2327;
-  --muted: #5d676d;
-  --line: #e2e0d8;
-  --accent: #1f6f5c;
-  --accent-ink: #ffffff;
-  --accent-soft: #dff0ea;
-  --warn: #8a4b00;
-  --warn-soft: #fff1dc;
-  --bad: #a32d2d;
-  --good: #1f6f5c;
+  --bg: #fff6ec;
+  --surface: #ffffff;
+  --ink: #231f3d;
+  --muted: #655f82;
+  --line: #eadfd0;
+  --indigo: #4b4fbf;
+  --indigo-2: #6d4cc9;
+  --coral: #ff6b57;
+  --coral-soft: #ffe3dd;
+  --sun: #ffc247;
+  --mint: #1f9e80;
+  --mint-soft: #d9f4ec;
+  --warn: #7a4300;
+  --warn-soft: #ffeccd;
+  --shadow: 0 6px 18px rgba(75, 79, 191, .10);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14181a;
-    --card: #1e2427;
-    --ink: #eef1f2;
-    --muted: #a3aeb3;
-    --line: #2f383c;
-    --accent: #4fc3a1;
-    --accent-ink: #0c1f19;
-    --accent-soft: #1d3a31;
-    --warn: #f2b868;
-    --warn-soft: #3a2c14;
-    --bad: #ff8a8a;
-    --good: #4fc3a1;
+    --bg: #17142b;
+    --surface: #221e3d;
+    --ink: #f4f0ff;
+    --muted: #b6b0d4;
+    --line: #353058;
+    --indigo: #8e92ff;
+    --indigo-2: #a98bff;
+    --coral: #ff8a78;
+    --coral-soft: #4a2a33;
+    --sun: #ffd070;
+    --mint: #4fd1b0;
+    --mint-soft: #1c3b3a;
+    --warn: #ffcf8a;
+    --warn-soft: #43301a;
+    --shadow: 0 6px 18px rgba(0, 0, 0, .35);
   }
 }
 * { box-sizing: border-box; }
@@ -41,85 +47,215 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
 }
-#app { max-width: 560px; margin: 0 auto; padding: 16px 16px 40px; }
-.brand { font-weight: 700; padding: 8px 0 12px; letter-spacing: .2px; }
-.foot { margin-top: 28px; color: var(--muted); font-size: 13px; text-align: center; }
-h1 { font-size: 26px; line-height: 1.2; margin: 4px 0 2px; }
-h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-.eyebrow { color: var(--muted); font-size: 14px; margin: 0; }
-.sub { color: var(--muted); margin: 0 0 16px; }
-.big { font-size: 30px; vertical-align: -3px; }
+#app { max-width: 600px; margin: 0 auto; padding: 14px 16px 110px; }
+.top { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 14px; }
+.logo { font-weight: 800; font-size: 20px; letter-spacing: .2px; }
+.logo-dot { display: inline-block; background: var(--indigo); border-radius: 12px; padding: 2px 6px; margin-right: 4px; }
+.pill {
+  background: var(--coral-soft);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 700;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+.foot { margin-top: 26px; color: var(--muted); font-size: 13px; text-align: center; }
+
+h1 { font-size: 28px; line-height: 1.15; margin: 4px 0 2px; font-weight: 800; }
+h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .8px; }
+.eyebrow { color: var(--muted); font-size: 14px; margin: 0; font-weight: 600; }
+.sub { color: var(--muted); margin: 0 0 14px; }
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #6d4cc9, #3b3fa8);
+  color: #fff;
+  border-radius: 28px;
+  padding: 22px 20px 20px;
+  box-shadow: var(--shadow);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -46px;
+  top: -46px;
+  width: 124px;
+  height: 124px;
+  background: var(--coral);
+  opacity: .9;
+  border-radius: 50%;
+}
+.hero > * { position: relative; z-index: 1; }
+.hero .eyebrow { color: #e4e1ff; max-width: 72%; }
+.hero h1 { font-size: 30px; margin-top: 6px; max-width: 80%; }
+.hero .emoji { font-size: 44px; display: block; margin-bottom: 6px; }
+.hero .sub { color: #e4e1ff; margin-bottom: 18px; }
+.btn-sun {
+  width: 100%;
+  background: var(--sun);
+  color: #231f3d;
+  border: 0;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: 0 5px 0 #d99a1c;
+}
+.btn-sun:active { transform: translateY(3px); box-shadow: 0 2px 0 #d99a1c; }
+
 .card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 22px;
   padding: 16px;
-  margin: 12px 0;
+  margin: 14px 0;
 }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { background: var(--accent-soft); color: var(--ink); border-radius: 999px; padding: 6px 12px; font-size: 15px; }
-.chip.hit { background: var(--accent-soft); }
-.chip.miss { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
+.chip { background: var(--coral-soft); border-radius: 999px; padding: 6px 14px; font-size: 15px; font-weight: 600; }
+.chip.hit { background: var(--mint-soft); }
+.chip.miss { background: transparent; border: 2px dashed var(--line); color: var(--muted); }
+
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+.day { font-size: 12px; color: var(--muted); font-weight: 700; }
+.dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin: 4px auto 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  font-weight: 800;
+  font-size: 15px;
+}
+.dot.done { background: var(--mint); border-color: var(--mint); color: #fff; }
+.dot.today { border-color: var(--coral); border-width: 3px; }
+.dot.future { opacity: .45; }
+
+.goal { display: flex; align-items: center; gap: 16px; }
+.ring { width: 84px; height: 84px; flex: none; }
+.ring .bg { stroke: var(--line); }
+.ring .fg { stroke: var(--coral); transition: stroke-dashoffset .5s ease; }
+.ring text { fill: var(--ink); font-weight: 800; font-size: 22px; }
+.goal b { font-size: 18px; display: block; }
+.goal span { color: var(--muted); }
+
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 button {
   font: inherit;
   min-height: 48px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--card);
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: var(--surface);
   color: var(--ink);
   padding: 10px 16px;
   cursor: pointer;
+  font-weight: 700;
 }
-button:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-button.primary { width: 100%; background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; font-size: 17px; margin-top: 8px; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid var(--indigo); outline-offset: 2px; }
+button.on { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+button.primary {
+  width: 100%;
+  background: var(--coral);
+  color: #2a0d08;
+  border: 0;
+  font-weight: 800;
+  font-size: 18px;
+  margin-top: 8px;
+  box-shadow: 0 5px 0 #d94a38;
+}
+button.primary:active { transform: translateY(3px); box-shadow: 0 2px 0 #d94a38; }
 button.ghost { background: transparent; }
-.row { display: flex; gap: 8px; margin-top: 8px; }
+.row { display: flex; gap: 10px; margin-top: 12px; }
 .row > button { flex: 1; }
-.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
-.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: center; }
-.stat b { display: block; font-size: 24px; }
-.stat span { color: var(--muted); font-size: 13px; }
-.prompt { font-size: 21px; line-height: 1.35; margin: 4px 0 12px; font-weight: 600; }
+
+.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 14px 0; }
+.stat { background: var(--surface); border: 2px solid var(--line); border-radius: 22px; padding: 14px; text-align: center; }
+.stat b { display: block; font-size: 28px; font-weight: 800; }
+.stat span { color: var(--muted); font-size: 13px; font-weight: 600; }
+
+.prompt { font-size: 22px; line-height: 1.35; margin: 4px 0 12px; font-weight: 800; }
 .hint { color: var(--muted); margin: 0 0 4px; }
-.meta { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
-.notice { background: var(--warn-soft); color: var(--warn); border-radius: 12px; padding: 12px 14px; margin: 12px 0; font-size: 15px; }
+.meta { color: var(--muted); font-size: 14px; margin: 0 0 10px; font-weight: 600; }
+.notice { background: var(--warn-soft); color: var(--warn); border-radius: 16px; padding: 12px 14px; margin: 14px 0; font-size: 15px; font-weight: 600; }
 .center { text-align: center; padding: 48px 0; }
-.count { font-size: 96px; font-weight: 800; color: var(--accent); }
-.timer { font-size: 44px; font-weight: 800; text-align: center; margin: 4px 0; font-variant-numeric: tabular-nums; }
-.bar { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; }
-.bar i { display: block; height: 100%; width: 100%; background: var(--accent); transition: width .25s linear; }
+.count { font-size: 110px; font-weight: 800; color: var(--coral); line-height: 1.1; }
+.timer { font-size: 52px; font-weight: 800; text-align: center; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.bar { height: 14px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--coral); border-radius: 999px; transition: width .25s linear; }
 .transcript, textarea {
   width: 100%;
   min-height: 150px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
   font: inherit;
   color: var(--ink);
   margin-top: 12px;
 }
 .transcript { white-space: pre-wrap; }
 .transcript .ghost { color: var(--muted); }
-.result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.empty { color: var(--muted); }
+.result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+.empty { color: var(--muted); margin: 0; }
+
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 2px solid var(--line);
+}
+.tab { flex: 1; max-width: 220px; display: flex; flex-direction: column; align-items: center; gap: 0; min-height: 52px; padding: 4px 12px; border-radius: 16px; border: 0; background: transparent; color: var(--muted); font-size: 13px; }
+.tab-ico { font-size: 20px; line-height: 1.2; }
+.tab.on { background: var(--coral-soft); color: var(--ink); }
+body.in-flow .tabs { display: none; }
+body.in-flow #app { padding-bottom: 40px; }
+
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+.confetti span {
+  position: absolute;
+  top: -30px;
+  font-size: 26px;
+  animation: fall 2.6s ease-in forwards;
+}
+@keyframes fall {
+  to { transform: translateY(105vh) rotate(360deg); opacity: .9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .ring .fg, .bar i { transition: none; }
+  button:active { transform: none; }
+}
 @media (max-width: 380px) {
-  h1 { font-size: 23px; }
+  h1 { font-size: 24px; }
+  .hero h1 { font-size: 25px; }
   .prompt { font-size: 19px; }
 }
 </style>
 </head>
 <body>
 <div id="app">
-  <div class="brand">🎙️ Speaking Pratik</div>
+  <header class="top">
+    <div class="logo"><span class="logo-dot">🎙️</span> Konuş</div>
+    <div class="pill" id="streakPill" aria-live="polite"></div>
+  </header>
   <main id="screen" aria-live="polite"></main>
-  <footer class="foot">Konuşman cihazından çıkmaz. Kayıt saklanmaz.</footer>
+  <p class="foot">Konuşman cihazından çıkmaz. Kayıt saklanmaz.</p>
 </div>
+<nav class="tabs" id="tabs" aria-label="Ana menü">
+  <button data-tab="today" class="tab on"><span class="tab-ico">☀️</span><span>Bugün</span></button>
+  <button data-tab="progress" class="tab"><span class="tab-ico">📈</span><span>İlerleme</span></button>
+</nav>
 <script>(function (root) {
   'use strict';
 
@@ -174,7 +310,34 @@ button.ghost { background: transparent; }
     return Math.round((wordCount / seconds) * 60);
   }
 
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  function dateKey(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  // Monday..Sunday keys of the local week containing `date`.
+  function weekKeys(date) {
+    var back = (date.getDay() + 6) % 7; // Monday = 0
+    var keys = [];
+    for (var i = 0; i < 7; i++) {
+      keys.push(dateKey(new Date(date.getFullYear(), date.getMonth(), date.getDate() - back + i)));
+    }
+    return keys;
+  }
+
+  // csv of day keys; adds `key` once and keeps only the latest `keep` entries.
+  function addDay(csv, key, keep) {
+    var list = csv ? String(csv).split(',').filter(Boolean) : [];
+    if (list.indexOf(key) === -1) list.push(key);
+    var max = keep || 60;
+    return list.slice(-max).join(',');
+  }
+
   var api = {
+    dateKey: dateKey,
+    weekKeys: weekKeys,
+    addDay: addDay,
     dayIndex: dayIndex,
     pickDaily: pickDaily,
     pickTest: pickTest,
@@ -550,6 +713,7 @@ button.ghost { background: transparent; }
   var screen = document.getElementById('screen');
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   var synth = window.speechSynthesis || null;
+  var GOAL = 2; // tests per day
 
   // ---------- storage (always try/catch, in-memory fallback) ----------
   var mem = {};
@@ -566,6 +730,7 @@ button.ghost { background: transparent; }
       try { window.localStorage.setItem('spk_' + k, String(v)); } catch (e) {}
     }
   };
+  function num(k) { return parseInt(store.get(k) || '0', 10) || 0; }
 
   // ---------- helpers ----------
   function esc(s) {
@@ -577,16 +742,17 @@ button.ghost { background: transparent; }
   function on(id, fn) { var el = $(id); if (el) el.addEventListener('click', fn); }
   function show(html) { screen.innerHTML = html; window.scrollTo(0, 0); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
-  function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function dateLabel(d) {
     try { return d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }); }
-    catch (e) { return dateKey(d); }
+    catch (e) { return L.dateKey(d); }
   }
   function mmss(sec) {
     sec = Math.max(0, Math.ceil(sec));
     return Math.floor(sec / 60) + ':' + pad(sec % 60);
   }
+  function flow(on_) { document.body.classList.toggle('in-flow', !!on_); }
   var LEVEL_TR = { easy: 'Kolay', medium: 'Orta', hard: 'Zor' };
+  var DAY_TR = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
   // ---------- state ----------
   var today = new Date();
@@ -597,34 +763,71 @@ button.ghost { background: transparent; }
   var testId = L.pickTest(ids, store.get('lastTest'));
   store.set('lastTest', testId);
 
-  var run = null;       // active recording session
-  var cdTimer = null;   // countdown timer
+  var run = null;
+  var cdTimer = null;
 
   function currentTest() {
     return C.TESTS.filter(function (t) { return t.id === testId; })[0];
   }
   function currentBuild() { return currentTest().build(daily, level); }
 
-  // ---------- streak and totals ----------
+  // ---------- progress ----------
   function streakInfo() {
     var last = store.get('streakLast');
-    var n = parseInt(store.get('streak') || '0', 10) || 0;
-    var y = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-    if (last === dateKey(new Date()) || last === dateKey(y)) return n;
+    var n = num('streak');
+    var now = new Date();
+    var y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    if (last === L.dateKey(now) || last === L.dateKey(y)) return n;
     return 0;
   }
-  function recordDone() {
+  function todayCount() {
+    var tc = store.get('tc');
+    if (!tc) return 0;
+    var p = tc.split(':');
+    return p[0] === L.dateKey(new Date()) ? (parseInt(p[1], 10) || 0) : 0;
+  }
+  function recordDone(words) {
     var now = new Date();
-    var key = dateKey(now);
+    var key = L.dateKey(now);
     var last = store.get('streakLast');
-    var n = parseInt(store.get('streak') || '0', 10) || 0;
+    var n = num('streak');
     if (last !== key) {
       var y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      n = last === dateKey(y) ? n + 1 : 1;
+      n = last === L.dateKey(y) ? n + 1 : 1;
       store.set('streak', n);
       store.set('streakLast', key);
     }
-    store.set('done', (parseInt(store.get('done') || '0', 10) || 0) + 1);
+    store.set('days', L.addDay(store.get('days'), key));
+    store.set('tc', key + ':' + (todayCount() + 1));
+    store.set('words', num('words') + words);
+    store.set('done', num('done') + 1);
+  }
+  function paintPill() {
+    var el = $('streakPill');
+    if (!el) return;
+    var n = streakInfo();
+    el.textContent = '🔥 ' + n;
+    el.setAttribute('aria-label', n + ' günlük seri');
+  }
+  function weekHtml() {
+    var keys = L.weekKeys(new Date());
+    var done = (store.get('days') || '').split(',');
+    var tk = L.dateKey(new Date());
+    return '<div class="week">' + keys.map(function (k, i) {
+      var cls = done.indexOf(k) !== -1 ? 'done' : (k === tk ? 'today' : (k > tk ? 'future' : ''));
+      if (k === tk && cls === 'done') cls = 'done today';
+      return '<div><div class="day">' + DAY_TR[i] + '</div><div class="dot ' + cls + '">' + (done.indexOf(k) !== -1 ? '✓' : '') + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function ringHtml(n, goal) {
+    var r = 36;
+    var c = 2 * Math.PI * r;
+    var frac = Math.min(1, n / goal);
+    return '<svg class="ring" viewBox="0 0 90 90" role="img" aria-label="Günlük hedef ' + Math.min(n, goal) + '/' + goal + '">' +
+      '<circle class="bg" cx="45" cy="45" r="' + r + '" fill="none" stroke-width="10"></circle>' +
+      '<circle class="fg" cx="45" cy="45" r="' + r + '" fill="none" stroke-width="10" stroke-linecap="round" ' +
+      'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - frac)).toFixed(1) + '" transform="rotate(-90 45 45)"></circle>' +
+      '<text x="45" y="53" text-anchor="middle">' + Math.min(n, goal) + '/' + goal + '</text></svg>';
   }
 
   // ---------- cleanup ----------
@@ -639,29 +842,41 @@ button.ghost { background: transparent; }
     if (synth) { try { synth.cancel(); } catch (e) {} }
   }
 
+  function setTab(name) {
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab') === name);
+    }
+  }
+
   // ---------- screens ----------
   function home() {
     stopAll();
+    flow(false);
+    setTab('today');
+    paintPill();
     var chips = daily.words.map(function (w) { return '<span class="chip">' + esc(w) + '</span>'; }).join('');
     var levels = C.LEVELS.map(function (l) {
       return '<button data-level="' + l + '" class="' + (l === level ? 'on' : '') + '" aria-pressed="' + (l === level) + '">' + LEVEL_TR[l] + '</button>';
     }).join('');
+    var n = todayCount();
+    var goalText = n >= GOAL ? 'Hedef tamam! 🎉' : (GOAL - n) + ' test daha yap';
     var notice = SR ? '' :
       '<div class="notice">Tarayıcın konuşma tanımayı desteklemiyor. Chrome veya Edge ile konuşarak pratik yapabilirsin. Şimdilik cevabını yazarak verebilirsin.</div>';
     show(
-      '<header>' +
+      '<section class="hero">' +
         '<p class="eyebrow">Günün konusu · ' + esc(dateLabel(today)) + '</p>' +
-        '<h1><span class="big">' + daily.emoji + '</span> ' + esc(daily.themeTr) + '</h1>' +
+        '<span class="emoji" aria-hidden="true">' + daily.emoji + '</span>' +
+        '<h1>' + esc(daily.themeTr) + '</h1>' +
         '<p class="sub">' + esc(daily.theme) + '</p>' +
-      '</header>' +
-      '<section class="card"><h2>Bugünün hedef kelimeleri</h2><div class="chips">' + chips + '</div></section>' +
-      '<section class="card"><h2>Seviye</h2><div class="seg" role="group" aria-label="Seviye">' + levels + '</div></section>' +
-      '<div class="stats">' +
-        '<div class="stat"><b>' + streakInfo() + '</b><span>gün seri</span></div>' +
-        '<div class="stat"><b>' + (parseInt(store.get('done') || '0', 10) || 0) + '</b><span>tamamlanan test</span></div>' +
-      '</div>' +
+        '<button class="btn-sun" id="go">Bugünkü testi başlat</button>' +
+      '</section>' +
       notice +
-      '<button class="primary" id="go">Bugünkü testi başlat</button>'
+      '<section class="card goal">' + ringHtml(n, GOAL) +
+        '<div><b>Günlük hedef</b><span>' + goalText + '</span></div></section>' +
+      '<section class="card"><h2>Bu hafta</h2>' + weekHtml() + '</section>' +
+      '<section class="card"><h2>Bugünün hedef kelimeleri</h2><div class="chips">' + chips + '</div></section>' +
+      '<section class="card"><h2>Seviye</h2><div class="seg" role="group" aria-label="Seviye">' + levels + '</div></section>'
     );
     var btns = screen.querySelectorAll('[data-level]');
     for (var i = 0; i < btns.length; i++) {
@@ -674,8 +889,26 @@ button.ghost { background: transparent; }
     on('go', card);
   }
 
+  function progress() {
+    stopAll();
+    flow(false);
+    setTab('progress');
+    paintPill();
+    show(
+      '<h1>İlerleme</h1><p class="sub">Küçük adımlar, büyük fark.</p>' +
+      '<div class="stats">' +
+        '<div class="stat"><b>' + streakInfo() + '</b><span>gün seri</span></div>' +
+        '<div class="stat"><b>' + num('done') + '</b><span>tamamlanan test</span></div>' +
+        '<div class="stat"><b>' + num('words') + '</b><span>söylenen kelime</span></div>' +
+        '<div class="stat"><b>' + todayCount() + '/' + GOAL + '</b><span>bugünkü hedef</span></div>' +
+      '</div>' +
+      '<section class="card"><h2>Bu hafta</h2>' + weekHtml() + '</section>'
+    );
+  }
+
   function card() {
     stopAll();
+    flow(true);
     var t = currentTest();
     var b = currentBuild();
     show(
@@ -700,6 +933,7 @@ button.ghost { background: transparent; }
 
   function countdown() {
     stopAll();
+    flow(true);
     var n = 3;
     show('<div class="center"><p class="eyebrow">Hazır ol</p><div class="count" id="cnt">' + n + '</div></div>');
     cdTimer = setInterval(function () {
@@ -863,19 +1097,36 @@ button.ghost { background: transparent; }
     var words = L.countWords(text);
     var hits = r.build.targets ? L.targetHits(text, r.build.targets) : null;
     run = null;
-    if (words > 0) recordDone();
+    if (words > 0) recordDone(words);
     result({
       text: text.trim(),
       seconds: seconds,
       words: words,
       wpm: r.typed ? null : L.wordsPerMinute(words, seconds),
       typed: r.typed,
-      hits: hits,
-      speakText: r.build.speakText || null
+      hits: hits
     });
   }
 
+  function confetti() {
+    var wrap = document.createElement('div');
+    wrap.className = 'confetti';
+    wrap.setAttribute('aria-hidden', 'true');
+    var bits = ['🎉', '⭐', '✨', '🟠', '🟣', '🟡'];
+    for (var i = 0; i < 16; i++) {
+      var s = document.createElement('span');
+      s.textContent = bits[i % bits.length];
+      s.style.left = (Math.random() * 96) + '%';
+      s.style.animationDelay = (Math.random() * 0.8) + 's';
+      wrap.appendChild(s);
+    }
+    document.body.appendChild(wrap);
+    setTimeout(function () { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 4000);
+  }
+
   function result(s) {
+    flow(true);
+    paintPill();
     var hitsHtml = '';
     if (s.hits) {
       hitsHtml = '<section class="card"><h2>Hedef kelimeler (' + s.hits.hit.length + '/' + (s.hits.hit.length + s.hits.missed.length) + ')</h2><div class="chips">' +
@@ -904,6 +1155,7 @@ button.ghost { background: transparent; }
       '<button class="primary" id="again">Tekrar dene</button>' +
       '<div class="row"><button id="next">Başka test</button><button class="ghost" id="home">Ana sayfa</button></div>'
     );
+    if (s.words > 0) confetti();
     on('again', card);
     on('next', function () {
       testId = L.pickTest(ids, testId);
@@ -911,6 +1163,15 @@ button.ghost { background: transparent; }
       card();
     });
     on('home', home);
+  }
+
+  // ---------- tabs ----------
+  var tabBtns = document.querySelectorAll('.tab');
+  for (var ti = 0; ti < tabBtns.length; ti++) {
+    tabBtns[ti].addEventListener('click', function (e) {
+      var name = e.currentTarget.getAttribute('data-tab');
+      if (name === 'progress') progress(); else home();
+    });
   }
 
   home();

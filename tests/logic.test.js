@@ -83,3 +83,50 @@ test('wordsPerMinute is 0 for non-positive seconds and rounds otherwise', () => 
   assert.strictEqual(L.wordsPerMinute(30, 60), 30);
   assert.strictEqual(L.wordsPerMinute(10, 45), 13);
 });
+
+test('dateKey formats local Y-M-D with zero padding', () => {
+  assert.strictEqual(L.dateKey(new Date(2026, 0, 5, 23, 59)), '2026-01-05');
+});
+
+test('weekKeys returns Monday to Sunday for a Friday', () => {
+  assert.deepStrictEqual(L.weekKeys(new Date(2026, 10, 13)), [
+    '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'
+  ]);
+});
+
+test('weekKeys: Sunday belongs to the week that started the Monday before', () => {
+  const k = L.weekKeys(new Date(2026, 10, 15));
+  assert.strictEqual(k[0], '2026-11-09');
+  assert.strictEqual(k[6], '2026-11-15');
+});
+
+test('weekKeys: Monday is the first day', () => {
+  assert.strictEqual(L.weekKeys(new Date(2026, 10, 9))[0], '2026-11-09');
+});
+
+test('weekKeys crosses a month boundary', () => {
+  const k = L.weekKeys(new Date(2026, 10, 1));
+  assert.strictEqual(k[0], '2026-10-26');
+  assert.strictEqual(k[6], '2026-11-01');
+});
+
+test('weekKeys has 7 distinct days across the EU DST change', () => {
+  const k = L.weekKeys(new Date(2027, 2, 28));
+  assert.strictEqual(new Set(k).size, 7);
+  assert.strictEqual(k[0], '2027-03-22');
+  assert.strictEqual(k[6], '2027-03-28');
+});
+
+test('addDay adds once and is idempotent', () => {
+  assert.strictEqual(L.addDay('', '2026-11-12'), '2026-11-12');
+  assert.strictEqual(L.addDay('2026-11-12', '2026-11-12'), '2026-11-12');
+  assert.strictEqual(L.addDay('2026-11-11', '2026-11-12'), '2026-11-11,2026-11-12');
+});
+
+test('addDay keeps only the latest N days', () => {
+  assert.strictEqual(L.addDay('a,b,c', 'd', 3), 'b,c,d');
+});
+
+test('addDay tolerates null input', () => {
+  assert.strictEqual(L.addDay(null, '2026-11-12'), '2026-11-12');
+});

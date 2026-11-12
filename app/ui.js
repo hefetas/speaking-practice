@@ -6,6 +6,7 @@
   var screen = document.getElementById('screen');
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   var synth = window.speechSynthesis || null;
+  var GOAL = 2; // tests per day
 
   // ---------- storage (always try/catch, in-memory fallback) ----------
   var mem = {};
@@ -22,6 +23,7 @@
       try { window.localStorage.setItem('spk_' + k, String(v)); } catch (e) {}
     }
   };
+  function num(k) { return parseInt(store.get(k) || '0', 10) || 0; }
 
   // ---------- helpers ----------
   function esc(s) {
@@ -33,16 +35,17 @@
   function on(id, fn) { var el = $(id); if (el) el.addEventListener('click', fn); }
   function show(html) { screen.innerHTML = html; window.scrollTo(0, 0); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
-  function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function dateLabel(d) {
     try { return d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }); }
-    catch (e) { return dateKey(d); }
+    catch (e) { return L.dateKey(d); }
   }
   function mmss(sec) {
     sec = Math.max(0, Math.ceil(sec));
     return Math.floor(sec / 60) + ':' + pad(sec % 60);
   }
+  function flow(on_) { document.body.classList.toggle('in-flow', !!on_); }
   var LEVEL_TR = { easy: 'Kolay', medium: 'Orta', hard: 'Zor' };
+  var DAY_TR = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
   // ---------- state ----------
   var today = new Date();
@@ -53,34 +56,71 @@
   var testId = L.pickTest(ids, store.get('lastTest'));
   store.set('lastTest', testId);
 
-  var run = null;       // active recording session
-  var cdTimer = null;   // countdown timer
+  var run = null;
+  var cdTimer = null;
 
   function currentTest() {
     return C.TESTS.filter(function (t) { return t.id === testId; })[0];
   }
   function currentBuild() { return currentTest().build(daily, level); }
 
-  // ---------- streak and totals ----------
+  // ---------- progress ----------
   function streakInfo() {
     var last = store.get('streakLast');
-    var n = parseInt(store.get('streak') || '0', 10) || 0;
-    var y = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-    if (last === dateKey(new Date()) || last === dateKey(y)) return n;
+    var n = num('streak');
+    var now = new Date();
+    var y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    if (last === L.dateKey(now) || last === L.dateKey(y)) return n;
     return 0;
   }
-  function recordDone() {
+  function todayCount() {
+    var tc = store.get('tc');
+    if (!tc) return 0;
+    var p = tc.split(':');
+    return p[0] === L.dateKey(new Date()) ? (parseInt(p[1], 10) || 0) : 0;
+  }
+  function recordDone(words) {
     var now = new Date();
-    var key = dateKey(now);
+    var key = L.dateKey(now);
     var last = store.get('streakLast');
-    var n = parseInt(store.get('streak') || '0', 10) || 0;
+    var n = num('streak');
     if (last !== key) {
       var y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      n = last === dateKey(y) ? n + 1 : 1;
+      n = last === L.dateKey(y) ? n + 1 : 1;
       store.set('streak', n);
       store.set('streakLast', key);
     }
-    store.set('done', (parseInt(store.get('done') || '0', 10) || 0) + 1);
+    store.set('days', L.addDay(store.get('days'), key));
+    store.set('tc', key + ':' + (todayCount() + 1));
+    store.set('words', num('words') + words);
+    store.set('done', num('done') + 1);
+  }
+  function paintPill() {
+    var el = $('streakPill');
+    if (!el) return;
+    var n = streakInfo();
+    el.textContent = '🔥 ' + n;
+    el.setAttribute('aria-label', n + ' günlük seri');
+  }
+  function weekHtml() {
+    var keys = L.weekKeys(new Date());
+    var done = (store.get('days') || '').split(',');
+    var tk = L.dateKey(new Date());
+    return '<div class="week">' + keys.map(function (k, i) {
+      var cls = done.indexOf(k) !== -1 ? 'done' : (k === tk ? 'today' : (k > tk ? 'future' : ''));
+      if (k === tk && cls === 'done') cls = 'done today';
+      return '<div><div class="day">' + DAY_TR[i] + '</div><div class="dot ' + cls + '">' + (done.indexOf(k) !== -1 ? '✓' : '') + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function ringHtml(n, goal) {
+    var r = 36;
+    var c = 2 * Math.PI * r;
+    var frac = Math.min(1, n / goal);
+    return '<svg class="ring" viewBox="0 0 90 90" role="img" aria-label="Günlük hedef ' + Math.min(n, goal) + '/' + goal + '">' +
+      '<circle class="bg" cx="45" cy="45" r="' + r + '" fill="none" stroke-width="10"></circle>' +
+      '<circle class="fg" cx="45" cy="45" r="' + r + '" fill="none" stroke-width="10" stroke-linecap="round" ' +
+      'stroke-dasharray="' + c.toFixed(1) + '" stroke-dashoffset="' + (c * (1 - frac)).toFixed(1) + '" transform="rotate(-90 45 45)"></circle>' +
+      '<text x="45" y="53" text-anchor="middle">' + Math.min(n, goal) + '/' + goal + '</text></svg>';
   }
 
   // ---------- cleanup ----------
@@ -95,29 +135,41 @@
     if (synth) { try { synth.cancel(); } catch (e) {} }
   }
 
+  function setTab(name) {
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('on', tabs[i].getAttribute('data-tab') === name);
+    }
+  }
+
   // ---------- screens ----------
   function home() {
     stopAll();
+    flow(false);
+    setTab('today');
+    paintPill();
     var chips = daily.words.map(function (w) { return '<span class="chip">' + esc(w) + '</span>'; }).join('');
     var levels = C.LEVELS.map(function (l) {
       return '<button data-level="' + l + '" class="' + (l === level ? 'on' : '') + '" aria-pressed="' + (l === level) + '">' + LEVEL_TR[l] + '</button>';
     }).join('');
+    var n = todayCount();
+    var goalText = n >= GOAL ? 'Hedef tamam! 🎉' : (GOAL - n) + ' test daha yap';
     var notice = SR ? '' :
       '<div class="notice">Tarayıcın konuşma tanımayı desteklemiyor. Chrome veya Edge ile konuşarak pratik yapabilirsin. Şimdilik cevabını yazarak verebilirsin.</div>';
     show(
-      '<header>' +
+      '<section class="hero">' +
         '<p class="eyebrow">Günün konusu · ' + esc(dateLabel(today)) + '</p>' +
-        '<h1><span class="big">' + daily.emoji + '</span> ' + esc(daily.themeTr) + '</h1>' +
+        '<span class="emoji" aria-hidden="true">' + daily.emoji + '</span>' +
+        '<h1>' + esc(daily.themeTr) + '</h1>' +
         '<p class="sub">' + esc(daily.theme) + '</p>' +
-      '</header>' +
-      '<section class="card"><h2>Bugünün hedef kelimeleri</h2><div class="chips">' + chips + '</div></section>' +
-      '<section class="card"><h2>Seviye</h2><div class="seg" role="group" aria-label="Seviye">' + levels + '</div></section>' +
-      '<div class="stats">' +
-        '<div class="stat"><b>' + streakInfo() + '</b><span>gün seri</span></div>' +
-        '<div class="stat"><b>' + (parseInt(store.get('done') || '0', 10) || 0) + '</b><span>tamamlanan test</span></div>' +
-      '</div>' +
+        '<button class="btn-sun" id="go">Bugünkü testi başlat</button>' +
+      '</section>' +
       notice +
-      '<button class="primary" id="go">Bugünkü testi başlat</button>'
+      '<section class="card goal">' + ringHtml(n, GOAL) +
+        '<div><b>Günlük hedef</b><span>' + goalText + '</span></div></section>' +
+      '<section class="card"><h2>Bu hafta</h2>' + weekHtml() + '</section>' +
+      '<section class="card"><h2>Bugünün hedef kelimeleri</h2><div class="chips">' + chips + '</div></section>' +
+      '<section class="card"><h2>Seviye</h2><div class="seg" role="group" aria-label="Seviye">' + levels + '</div></section>'
     );
     var btns = screen.querySelectorAll('[data-level]');
     for (var i = 0; i < btns.length; i++) {
@@ -130,8 +182,26 @@
     on('go', card);
   }
 
+  function progress() {
+    stopAll();
+    flow(false);
+    setTab('progress');
+    paintPill();
+    show(
+      '<h1>İlerleme</h1><p class="sub">Küçük adımlar, büyük fark.</p>' +
+      '<div class="stats">' +
+        '<div class="stat"><b>' + streakInfo() + '</b><span>gün seri</span></div>' +
+        '<div class="stat"><b>' + num('done') + '</b><span>tamamlanan test</span></div>' +
+        '<div class="stat"><b>' + num('words') + '</b><span>söylenen kelime</span></div>' +
+        '<div class="stat"><b>' + todayCount() + '/' + GOAL + '</b><span>bugünkü hedef</span></div>' +
+      '</div>' +
+      '<section class="card"><h2>Bu hafta</h2>' + weekHtml() + '</section>'
+    );
+  }
+
   function card() {
     stopAll();
+    flow(true);
     var t = currentTest();
     var b = currentBuild();
     show(
@@ -156,6 +226,7 @@
 
   function countdown() {
     stopAll();
+    flow(true);
     var n = 3;
     show('<div class="center"><p class="eyebrow">Hazır ol</p><div class="count" id="cnt">' + n + '</div></div>');
     cdTimer = setInterval(function () {
@@ -319,19 +390,36 @@
     var words = L.countWords(text);
     var hits = r.build.targets ? L.targetHits(text, r.build.targets) : null;
     run = null;
-    if (words > 0) recordDone();
+    if (words > 0) recordDone(words);
     result({
       text: text.trim(),
       seconds: seconds,
       words: words,
       wpm: r.typed ? null : L.wordsPerMinute(words, seconds),
       typed: r.typed,
-      hits: hits,
-      speakText: r.build.speakText || null
+      hits: hits
     });
   }
 
+  function confetti() {
+    var wrap = document.createElement('div');
+    wrap.className = 'confetti';
+    wrap.setAttribute('aria-hidden', 'true');
+    var bits = ['🎉', '⭐', '✨', '🟠', '🟣', '🟡'];
+    for (var i = 0; i < 16; i++) {
+      var s = document.createElement('span');
+      s.textContent = bits[i % bits.length];
+      s.style.left = (Math.random() * 96) + '%';
+      s.style.animationDelay = (Math.random() * 0.8) + 's';
+      wrap.appendChild(s);
+    }
+    document.body.appendChild(wrap);
+    setTimeout(function () { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); }, 4000);
+  }
+
   function result(s) {
+    flow(true);
+    paintPill();
     var hitsHtml = '';
     if (s.hits) {
       hitsHtml = '<section class="card"><h2>Hedef kelimeler (' + s.hits.hit.length + '/' + (s.hits.hit.length + s.hits.missed.length) + ')</h2><div class="chips">' +
@@ -360,6 +448,7 @@
       '<button class="primary" id="again">Tekrar dene</button>' +
       '<div class="row"><button id="next">Başka test</button><button class="ghost" id="home">Ana sayfa</button></div>'
     );
+    if (s.words > 0) confetti();
     on('again', card);
     on('next', function () {
       testId = L.pickTest(ids, testId);
@@ -367,6 +456,15 @@
       card();
     });
     on('home', home);
+  }
+
+  // ---------- tabs ----------
+  var tabBtns = document.querySelectorAll('.tab');
+  for (var ti = 0; ti < tabBtns.length; ti++) {
+    tabBtns[ti].addEventListener('click', function (e) {
+      var name = e.currentTarget.getAttribute('data-tab');
+      if (name === 'progress') progress(); else home();
+    });
   }
 
   home();
