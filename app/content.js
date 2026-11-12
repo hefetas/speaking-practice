@@ -257,6 +257,12 @@
       "How can we preserve traditions in a globalized world? Share your thoughts.")
   ];
 
+  function ext(name, file) {
+    return (typeof module !== 'undefined' && module.exports && typeof require === 'function') ? require(file) : root[name];
+  }
+  DAILY = DAILY.concat(ext('DailyMore1', './daily-more-1.js'), ext('DailyMore2', './daily-more-2.js'));
+  var IELTS = ext('IeltsBank', './ielts.js');
+
   function lvl(l) { return SECONDS[l] || 60; }
 
   var TESTS = [
@@ -345,7 +351,83 @@
     }
   ];
 
-  var api = { LEVELS: LEVELS, DAILY: DAILY, TESTS: TESTS };
+  TESTS.push({
+    id: 'rapid',
+    titleTr: 'Hız turu',
+    build: function (d, l) {
+      var rs = { easy: 12, medium: 10, hard: 8 }[l] || 10;
+      return {
+        promptEn: 'Quick round! A new prompt appears every ' + rs + ' seconds. Say one sentence for each.',
+        hintTr: 'Her kelime için tek bir cümle kur; takılırsan hemen sonrakine geç.',
+        seconds: rs * 5,
+        roundSeconds: rs,
+        prompts: d.words.map(function (w) { return 'Say a sentence with “' + w + '”'; }),
+        targets: d.words.slice()
+      };
+    }
+  });
+
+  TESTS.push({
+    id: 'shadow',
+    titleTr: 'Gölgeleme (tempoyla oku)',
+    build: function (d, l) {
+      var wpm = { easy: 100, medium: 130, hard: 150 }[l] || 130;
+      var passage = 'Today we are talking about ' + d.theme.toLowerCase() + '. ' + d.questions[l];
+      var n = passage.split(/\s+/).length;
+      return {
+        promptEn: 'Read the text aloud and keep up with the highlighted words.',
+        hintTr: 'Vurgulanan kelimeyi takip ederek yüksek sesle oku; tempoyu kaçırma.',
+        seconds: Math.ceil(n / wpm * 60) + 4,
+        passage: passage,
+        passageWpm: wpm
+      };
+    }
+  });
+
+  function cardCtx(ctx) { return ctx && ctx.card ? ctx : { card: IELTS[0], i: 0 }; }
+
+  var IELTS_TESTS = [
+    {
+      id: 'ielts1',
+      titleTr: 'IELTS Part 1',
+      build: function (d, l, ctx) {
+        var c = cardCtx(ctx);
+        return {
+          promptEn: c.card.part1[c.i % 3],
+          hintTr: 'Part 1: 2-3 cümleyle doğal ve kısa cevap ver; bir örnek ekle.',
+          seconds: 40
+        };
+      }
+    },
+    {
+      id: 'ielts2',
+      titleTr: 'IELTS Part 2',
+      build: function (d, l, ctx) {
+        var c = cardCtx(ctx);
+        return {
+          promptEn: c.card.part2.prompt,
+          points: c.card.part2.points.slice(),
+          hintTr: 'Part 2: 30 sn hazırlan, sonra 1-2 dakika kesintisiz konuş; maddeleri sırayla kullan.',
+          seconds: 120,
+          prepSeconds: 30
+        };
+      }
+    },
+    {
+      id: 'ielts3',
+      titleTr: 'IELTS Part 3',
+      build: function (d, l, ctx) {
+        var c = cardCtx(ctx);
+        return {
+          promptEn: c.card.part3[c.i % 2],
+          hintTr: 'Part 3: Fikrini söyle, nedenini açıkla ve genel bir örnek ver.',
+          seconds: 60
+        };
+      }
+    }
+  ];
+
+  var api = { LEVELS: LEVELS, DAILY: DAILY, TESTS: TESTS, IELTS: IELTS, IELTS_TESTS: IELTS_TESTS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.Content = api;
 })(typeof window !== 'undefined' ? window : globalThis);

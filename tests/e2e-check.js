@@ -19,8 +19,9 @@ async function startTest(page) {
   await page.click('#go');
   const title = await page.textContent('h1');
   await page.click('#start');
-  await page.waitForSelector('#time, #speak', { timeout: 8000 });
-  if (await page.$('#speak')) { await page.click('#speak'); await page.waitForSelector('#time'); }
+  await page.waitForSelector('#time, #speak, #prepgo', { timeout: 8000 });
+  if (await page.$('#prepgo')) { await page.click('#prepgo'); await page.waitForSelector('#time'); }
+  else if (await page.$('#speak')) { await page.click('#speak'); await page.waitForSelector('#time'); }
   return title;
 }
 
@@ -109,6 +110,93 @@ async function startTest(page) {
   assert.deepStrictEqual(errors, [], 'console errors: ' + errors.join('; '));
   console.log('6 ok  works with localStorage blocked');
   await ctx.close();
+
+  // 7. Fake speech recognition: live transcript, wpm, analysis, XP, compare on retry, share download
+  const fakeSR = () => {
+    function F() { this.onresult = null; }
+    F.prototype.start = function () {
+      const self = this;
+      setTimeout(() => {
+        const mk = (t) => { const r = [{ transcript: t }]; r.isFinal = true; return r; };
+        self.onresult && self.onresult({ results: [mk('well I really like to travel and I travel a lot um because travel is nice and I like it')] });
+      }, 300);
+    };
+    F.prototype.abort = function () {}; F.prototype.stop = function () {};
+    window.SpeechRecognition = F; window.webkitSpeechRecognition = F;
+  };
+  ({ ctx, page, errors } = await fresh(browser, { acceptDownloads: true }, fakeSR));
+  await startTest(page);
+  await page.waitForFunction(() => /travel/.test(document.getElementById('tr').textContent));
+  await page.waitForTimeout(1200);
+  await page.click('#finish');
+  await page.waitForSelector('#again');
+  const body7 = await page.textContent('main, #screen');
+  assert.ok(/\+\d+ XP/.test(body7), 'no XP banner');
+  assert.ok(/Konuşma analizi/.test(body7) && /Dolgu/.test(body7), 'no analysis');
+  assert.ok(/Tempo/.test(body7), 'no pace label');
+  assert.ok(/İlk denemen/.test(body7), 'first attempt note missing');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dl')]);
+  assert.strictEqual(dl.suggestedFilename(), 'konus-sonuc.png');
+  // retry the same test: comparison appears
+  await page.click('#again');
+  await page.click('#start');
+  await page.waitForSelector('#time, #speak, #prepgo', { timeout: 8000 });
+  if (await page.$('#prepgo')) await page.click('#prepgo'); else if (await page.$('#speak')) await page.click('#speak');
+  await page.waitForSelector('#time');
+  await page.waitForFunction(() => /travel/.test(document.getElementById('tr').textContent));
+  await page.click('#finish');
+  await page.waitForSelector('#again');
+  assert.ok(/Geçen denemeyle kıyas/.test(await page.textContent('#screen')) && !/İlk denemen/.test(await page.textContent('#screen')), 'compare missing');
+  await page.click('#home');
+  await page.click('.tab[data-tab=progress]');
+  const prog = await page.textContent('#screen');
+  assert.ok(/Konuşma pasaportu \(\d\/9\)/.test(prog) && !/Konuşma pasaportu \(0\/9\)/.test(prog), 'passport empty');
+  assert.ok(/Yeni|İlk|Rozetler/.test(prog));
+  assert.deepStrictEqual(errors, [], 'console errors: ' + errors.join('; '));
+  console.log('7 ok  fake SR, analysis, XP, compare, share download, passport');
+  await ctx.close();
+
+  // 8. IELTS mode runs all three parts without errors (typed fallback)
+  ({ ctx, page, errors } = await fresh(browser, {}, () => { delete window.SpeechRecognition; delete window.webkitSpeechRecognition; }));
+  await page.click('[data-mode=ielts]');
+  assert.ok((await page.textContent('h1')).includes('IELTS'));
+  assert.ok(!(await page.$('[data-level]')), 'level picker should hide in IELTS mode');
+  const seen = new Set();
+  for (let i = 0; i < 6; i++) {
+    await page.click('#go, #again').catch(() => {});
+    await page.click('#start');
+    await page.waitForSelector('#time, #prepgo', { timeout: 8000 });
+    if (await page.$('#prepgo')) { seen.add('part2'); await page.click('#prepgo'); await page.waitForSelector('#time'); }
+    await page.fill('#typed', 'I think this is a good question and I would like to answer it with several words');
+    await page.click('#finish');
+    await page.waitForSelector('#next');
+    await page.click('#next');
+    seen.add((await page.textContent('h1')).trim());
+  }
+  assert.ok(seen.size >= 3, 'IELTS variety too low: ' + [...seen].join('|'));
+  assert.deepStrictEqual(errors, [], 'console errors: ' + errors.join('; '));
+  console.log('8 ok  IELTS mode:', [...seen].join(' | '));
+  await ctx.close();
+
+  // 9. Optional audio recording with a fake mic
+  ({ ctx, page, errors } = await fresh(browser, { permissions: ['microphone'] }, fakeSR));
+  await ctx.close();
+  const b2 = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
+  ({ ctx, page, errors } = await fresh(b2, { permissions: ['microphone'] }, fakeSR));
+  await page.click('#go');
+  await page.check('#audioToggle');
+  await page.click('#start');
+  await page.waitForSelector('#time, #speak, #prepgo', { timeout: 8000 });
+  if (await page.$('#prepgo')) await page.click('#prepgo'); else if (await page.$('#speak')) await page.click('#speak');
+  await page.waitForSelector('#time');
+  await page.waitForTimeout(1800);
+  await page.click('#finish');
+  await page.waitForSelector('#again');
+  assert.ok(await page.$('#replayAudio'), 'audio player missing');
+  assert.deepStrictEqual(errors, [], 'console errors: ' + errors.join('; '));
+  console.log('9 ok  audio playback recorded');
+  await ctx.close();
+  await b2.close();
 
   await browser.close();
   console.log('ALL E2E CHECKS PASSED');
