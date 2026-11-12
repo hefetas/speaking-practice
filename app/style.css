@@ -333,3 +333,29 @@ button.primary.small { min-height: 48px; font-size: 15px; }
   .alert.soft { background: #1d3a2e; color: #bdeed6; }
 }
 .pill:empty { display: none; }
+
+/* ---- series (Sherlock) ---- */
+.seriescard { display: flex; gap: 14px; align-items: center; background: linear-gradient(135deg, #3a3f4b, #565c6e); color: #fff; border: 0; }
+.seriescard .big { font-size: 42px; line-height: 1; }
+.seriescard h2 { color: #fff; margin: 0 0 4px; }
+.seriescard p { color: #e6e8ef; margin: 0 0 10px; font-size: 14px; }
+.seriescard button { background: #ffd166; color: #3a2a00; border: 0; }
+.stage { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 400 / 340; background: #e9cfa6; box-shadow: 0 6px 0 rgba(0,0,0,.12); border: 3px solid transparent; transition: border-color .2s, box-shadow .2s; }
+.stage svg { display: block; width: 100%; height: 100%; }
+.stage.mine { border-color: #ff6b57; box-shadow: 0 0 0 5px rgba(255,107,87,.28), 0 6px 0 rgba(0,0,0,.12); }
+.subs { min-height: 92px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: var(--card, #fff); border: 1px solid rgba(0,0,0,.08); }
+.subs .who { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; opacity: .65; }
+.subs .line { font-size: 19px; font-weight: 700; line-height: 1.35; margin: 2px 0 0; }
+.subs .tr { font-size: 14px; opacity: .7; margin: 4px 0 0; }
+.turn { margin-top: 12px; }
+.turn .say { font-size: 22px; font-weight: 800; line-height: 1.4; margin: 6px 0 2px; }
+.turn .say .hit { color: #1d9d5a; }
+.turn .say .miss { color: #e0683f; text-decoration: underline wavy; }
+.turn .verdict { font-weight: 800; margin: 8px 0 2px; }
+.turn textarea { width: 100%; min-height: 64px; }
+.stars { font-size: 34px; letter-spacing: 4px; }
+.phr { list-style: none; padding: 0; margin: 8px 0 0; }
+.phr li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed rgba(0,0,0,.12); }
+@media (prefers-color-scheme: dark) { .subs { background: #1f2230; border-color: rgba(255,255,255,.1); } .phr li { border-color: rgba(255,255,255,.15); } }
+.turn .transcript { min-height: 40px; margin-top: 8px; }
+.turn .card { padding-bottom: 14px; }

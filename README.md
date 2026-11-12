@@ -38,3 +38,11 @@ node tests/e2e-check.js            # tarayıcı testi (Playwright + Chrome, ~7 d
 - Konuşma tanıma tarayıcıdan gelir (Chrome/Edge sesi sağlayıcının sunucusuna gönderebilir); onay ekranı ve gizlilik metni bunu açıkça söyler.
 - "Verilerimi sil" düğmesi tüm yerel veriyi siler (KVKK md. 11 uyumu).
 - Hiçbir ekran girdi/link içeriğini `innerHTML` ile ham basmaz; test: `tests/e2e-check.js` #12.
+
+
+## Sherlock series (first-person episodes)
+
+- `app/series.js`: original scripts (episode data, scoring with contraction/digit tolerance, summary). Add an episode by appending to `EPISODES`; the test suite checks line lengths, no contractions in lines the player must say, and that every key phrase occurs in the script.
+- `app/stage.js`: the animation engine. Pure math (two-link IK for arms, critically damped springs, mouth envelope, mood poses) is unit-tested; `mount()` draws the SVG rig and runs the requestAnimationFrame loop. Add a mood by adding a full pose to `POSES`.
+- Characters: Sherlock Holmes and Dr. Watson are public-domain (Conan Doyle). Dialogue, plots and artwork are original; the About page says so. Do not copy dialogue or scenes from films/TV adaptations.
+- Browser check: `node build.js && node tests/e2e-series.js`.

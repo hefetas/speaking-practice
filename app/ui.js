@@ -10,6 +10,8 @@
   var N = window.Notebook;
   var ICS = window.Ics;
   var I = window.I18N;
+  var Se = window.Series;
+  var St = window.Stage;
   var G = window.Legal;
   var CFG = window.CONFIG || {};
   var screen = document.getElementById('screen');
@@ -118,6 +120,7 @@
   var audioUrl = null;
   var chalState = null; // { ch, joined }
   var view = null;
+  var sc = null; // running series episode
   var consented = false;
 
   function tests() { return mode === 'ielts' ? C.IELTS_TESTS : C.TESTS; }
@@ -358,6 +361,7 @@
       discardAudio(run);
       run = null;
     }
+    sceneStop();
     if (synth) { try { synth.cancel(); } catch (e) {} }
     if (audioUrl) { try { URL.revokeObjectURL(audioUrl); } catch (e) {} audioUrl = null; }
   }
@@ -455,6 +459,8 @@
     var vc = vocabList().length;
     show(
       '<section class="hero">' + hero + '</section>' +
+      (isI ? '' : '<section class="card seriescard"><span class="big" aria-hidden="true">🕵️</span><div><h2>' + esc(t('series_card_h')) + '</h2><p>' + esc(t('series_card_p')) + '</p>' +
+        '<button class="primary small" id="seriesGo">' + esc(t('series_play')) + '</button></div></section>') +
       '<div class="seg two" role="group" aria-label="' + esc(t('mode_label')) + '" style="margin-top:14px">' +
         '<button data-mode="daily" class="' + (!isI ? 'on' : '') + '" aria-pressed="' + (!isI) + '">' + esc(t('mode_daily')) + '</button>' +
         '<button data-mode="ielts" class="' + (isI ? 'on' : '') + '" aria-pressed="' + isI + '">' + esc(t('mode_ielts')) + '</button>' +
@@ -491,6 +497,7 @@
     on('go', function () { if (!testId || tests().every(function (x) { return x.id !== testId; })) pickNext(); card(); });
     on('invite', invite);
     on('vocabOpen', vocab);
+    on('seriesGo', function () { sceneIntro(Se.episodeFor(L.dateKey(new Date()))); });
   }
 
   function progress() {
@@ -1229,6 +1236,285 @@
 
   var pendingChallenge = null;
   var badHash = false;
+
+  // ---------- series (Sherlock): you are his friend, first person ----------
+  function pickVoice(male) {
+    if (!synth || !synth.getVoices) return null;
+    var vs = synth.getVoices() || [];
+    var en = vs.filter(function (v) { return /^en/i.test(v.lang); });
+    var m = en.filter(function (v) { return /daniel|alex|david|george|james|thomas|fred|male|google uk english male/i.test(v.name); });
+    var gb = en.filter(function (v) { return /en[-_]GB/i.test(v.lang); });
+    if (male) return m[0] || gb[0] || en[0] || null;
+    return en.filter(function (v) { return /en[-_]US/i.test(v.lang) && !/male\b/i.test(v.name); })[0] || en[0] || null;
+  }
+  function speakLine(text, male, done) {
+    var fired = false;
+    function fin() { if (fired) return; fired = true; if (sc && sc.ttsTimer) { clearTimeout(sc.ttsTimer); sc.ttsTimer = null; } done(); }
+    var est = St.estimateMs(text);
+    if (!synth || !window.SpeechSynthesisUtterance) {
+      sc.ttsTimer = setTimeout(fin, est);
+      return;
+    }
+    try {
+      synth.cancel();
+      var u = new window.SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.92;
+      u.pitch = male ? 0.8 : 1.05;
+      var v = pickVoice(male);
+      if (v) { u.voice = v; u.lang = v.lang; }
+      u.onend = fin;
+      u.onerror = fin;
+      synth.speak(u);
+      sc.ttsTimer = setTimeout(fin, est * 1.8 + 1500);
+    } catch (e) { sc.ttsTimer = setTimeout(fin, est); }
+  }
+
+  function sceneStop() {
+    if (!sc) return;
+    var s0 = sc;
+    sc = null;
+    s0.dead = true;
+    if (s0.ttsTimer) clearTimeout(s0.ttsTimer);
+    if (s0.timer) clearTimeout(s0.timer);
+    if (s0.rec) { try { s0.rec.onend = null; s0.rec.onresult = null; s0.rec.onerror = null; s0.rec.abort(); } catch (e) {} }
+    if (s0.ctl) s0.ctl.destroy();
+    if (synth) { try { synth.cancel(); } catch (e) {} }
+  }
+
+  function sceneIntro(ep) {
+    stopAll();
+    view = function () { sceneIntro(ep); };
+    flow(true);
+    var ph = ep.phrases.map(function (p) { return '<li><b>' + esc(p.en) + '</b><span>' + esc(lang === 'tr' ? p.tr : '') + '</span></li>'; }).join('');
+    show(
+      '<p class="eyebrow">' + esc(t('series_card_h')) + '</p>' +
+      '<h1>' + esc(t('series_ep', { t: lang === 'tr' ? ep.titleTr : ep.title })) + '</h1>' +
+      '<section class="card"><p>' + esc(lang === 'tr' ? ep.blurbTr : ep.blurb) + '</p><p class="hint">' + esc(t('series_intro_hint')) + '</p>' +
+        (synth ? '' : '<p class="notice">' + esc(t('series_nosound')) + '</p>') +
+        (SR ? '' : '<p class="notice">' + esc(t('notice_nosr')) + '</p>') + '</section>' +
+      '<section class="card"><h2>' + esc(t('series_phrases')) + '</h2><ul class="phr">' + ph + '</ul></section>' +
+      '<button class="primary" id="scGo">' + esc(t('series_start')) + '</button>' +
+      '<div class="row"><button class="ghost" id="scBack">' + esc(t('btn_back')) + '</button></div>'
+    );
+    on('scGo', function () { scene(ep); });
+    on('scBack', home);
+  }
+
+  function scene(ep) {
+    stopAll();
+    flow(true);
+    view = function () { scene(ep); };
+    show(
+      '<p class="eyebrow">' + esc(t('series_ep', { t: lang === 'tr' ? ep.titleTr : ep.title })) + '</p>' +
+      '<div class="stage" id="stage"></div>' +
+      '<div class="subs" id="subs" aria-live="polite"></div>' +
+      '<div class="turn" id="turn"></div>' +
+      '<div class="row"><button class="ghost" id="scQuit">' + esc(t('series_quit')) + '</button></div>'
+    );
+    var reduced = false;
+    try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+    var me = {
+      ep: ep, i: 0, results: [], tries: 0, best: 0, heard: '', dead: false, ttsTimer: null, timer: null, rec: null, spoken: 0,
+      ctl: St.mount($('stage'), { reduced: reduced })
+    };
+    sc = me;
+    on('scQuit', home);
+    beat();
+  }
+
+  function beat() {
+    var me = sc;
+    if (!me || me.dead) return;
+    var b = me.ep.beats[me.i];
+    if (!b) { sceneEnd(); return; }
+    var stage = $('stage');
+    var subs = $('subs');
+    var turn = $('turn');
+    me.tries = 0; me.best = 0; me.heard = ''; me.spoken = 0;
+    if (b.who === 'sherlock') {
+      if (stage) stage.classList.remove('mine');
+      if (turn) turn.innerHTML = '';
+      me.ctl.setMood(b.mood);
+      me.ctl.speaking(true);
+      if (subs) subs.innerHTML = '<div class="who">Sherlock</div><p class="line">' + esc(b.en) + '</p>' + (lang === 'tr' ? '<p class="tr">' + esc(b.tr) + '</p>' : '');
+      speakLine(b.en, true, function () {
+        if (!sc || sc.dead || sc !== me) return;
+        me.ctl.speaking(false);
+        me.timer = setTimeout(function () { me.i++; beat(); }, 380);
+      });
+      return;
+    }
+    // your turn
+    me.ctl.setMood('listen');
+    me.ctl.speaking(false);
+    if (stage) stage.classList.add('mine');
+    if (subs) subs.innerHTML = '<div class="who">' + esc(t('series_you')) + '</div><p class="line">…</p>';
+    yourTurn(b);
+  }
+
+  function sayHtml(b, r) {
+    var hit = {};
+    var miss = {};
+    if (r) { r.hit.forEach(function (w) { hit[w] = true; }); r.miss.forEach(function (w) { miss[w] = true; }); }
+    return b.en.split(/\s+/).map(function (w) {
+      var key = L.normalize(w);
+      var c = r ? (miss[key] ? 'miss' : (hit[key] ? 'hit' : '')) : '';
+      return '<span class="' + c + '">' + esc(w) + '</span>';
+    }).join(' ');
+  }
+
+  function yourTurn(b) {
+    var me = sc;
+    var turn = $('turn');
+    if (!turn) return;
+    var typed = !SR;
+    turn.innerHTML =
+      '<section class="card"><b>🎤 ' + esc(t('series_your_turn')) + '</b>' +
+      '<p class="hint" style="margin:6px 0 0">' + esc(t('series_say_it')) + '</p>' +
+      '<p class="say" id="say">' + sayHtml(b, null) + '</p>' +
+      (lang === 'tr' ? '<p class="hint">' + esc(b.tr) + '</p>' : '') +
+      '<div id="heard" class="transcript" aria-live="polite"></div><div id="verdict"></div>' +
+      (typed ? '<textarea id="scText" placeholder="' + esc(t('series_typed_ph')) + '" aria-label="' + esc(t('series_typed_ph')) + '"></textarea>' : '') +
+      '<div class="row" id="scBtns"></div></section>';
+    function buttons(state) {
+      var h = '<button id="scHear" class="ghost">' + esc(t('series_hear')) + '</button>';
+      if (state === 'ready') {
+        h += typed ? '<button class="primary" id="scSend">' + esc(t('series_send')) + '</button>' : '<button class="primary" id="scMic">' + esc(t('series_mic')) + '</button>';
+        h += '<button class="ghost" id="scSkip">' + esc(t('series_skip')) + '</button>';
+      } else if (state === 'listening') {
+        h += '<button class="primary" id="scStopRec">' + esc(t('series_done')) + '</button>';
+      } else if (state === 'retry') {
+        h += '<button id="scMic">' + esc(typed ? t('series_retry') : t('series_retry')) + '</button><button class="primary" id="scNext">' + esc(t('series_next')) + '</button>';
+      } else {
+        h += '<button class="primary" id="scNext">' + esc(t('series_next')) + '</button>';
+      }
+      $('scBtns').innerHTML = h;
+      on('scHear', function () { if (me.rec) return; speakLine(b.en, false, function () {}); });
+      on('scMic', startListen);
+      on('scStopRec', function () { if (me.rec) { try { me.rec.stop(); } catch (e) {} } });
+      on('scSkip', function () { finish(); });
+      on('scNext', function () { finish(); });
+      on('scSend', function () {
+        var ta = $('scText');
+        evaluate(ta ? ta.value : '');
+      });
+    }
+    function finish() {
+      if (!sc || sc !== me) return;
+      if (me.rec) { try { me.rec.onend = null; me.rec.abort(); } catch (e) {} me.rec = null; }
+      if (synth) { try { synth.cancel(); } catch (e) {} }
+      me.results.push({ pct: me.best, spoken: me.spoken, miss: me.lastMiss || [] });
+      me.i++;
+      beat();
+    }
+    function evaluate(text) {
+      if (!sc || sc !== me) return;
+      me.rec = null;
+      me.tries++;
+      var r = Se.scoreLine(b.en, text);
+      if (r.pct >= me.best) { me.best = r.pct; me.lastMiss = r.miss; me.spoken = L.countWords(text); }
+      var say = $('say');
+      if (say) say.innerHTML = sayHtml(b, r);
+      var hd = $('heard');
+      if (hd) hd.textContent = text ? '“' + text + '”' : '';
+      var vd = $('verdict');
+      if (vd) vd.innerHTML = '<p class="verdict">' + esc(t('series_v' + r.stars)) + ' <small>%' + r.pct + '</small></p>' +
+        (r.miss.length && !r.ok ? '<p class="hint">' + esc(t('series_missed')) + ' ' + esc(r.miss.join(', ')) + '</p>' : '');
+      if (r.ok) {
+        me.ctl.setMood('happy');
+        me.ctl.nod();
+        buttons('done');
+        me.timer = setTimeout(function () { if (sc === me && !me.dead) finish(); }, 1700);
+      } else {
+        me.ctl.setMood('think');
+        buttons(me.tries >= 2 ? 'done' : 'retry');
+      }
+    }
+    function startListen() {
+      if (!sc || sc !== me) return;
+      if (synth) { try { synth.cancel(); } catch (e) {} }
+      var rec;
+      try { rec = new SR(); } catch (e) { typed = true; yourTurn(b); return; }
+      me.rec = rec;
+      rec.lang = 'en-US';
+      rec.continuous = false;
+      rec.interimResults = true;
+      var text = '';
+      var got = false;
+      rec.onresult = function (e) {
+        var s1 = '';
+        for (var k = 0; k < e.results.length; k++) s1 += e.results[k][0].transcript + ' ';
+        text = s1.trim();
+        got = true;
+        var hd = $('heard');
+        if (hd) hd.textContent = text;
+      };
+      rec.onerror = function (e) {
+        var code = e && e.error;
+        if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture' || code === 'network') {
+          if (me.rec === rec) { me.rec = null; typed = true; yourTurn(b); }
+        }
+      };
+      rec.onend = function () {
+        if (me.rec !== rec) return;
+        me.rec = null;
+        if (got) evaluate(text); else { var hd = $('heard'); if (hd) hd.textContent = ''; buttons('ready'); }
+      };
+      try {
+        rec.start();
+        var hd0 = $('heard');
+        if (hd0) hd0.innerHTML = '<span class="ghost">' + esc(t('series_listening')) + '</span>';
+        buttons('listening');
+        me.timer = setTimeout(function () { if (me.rec === rec) { try { rec.stop(); } catch (e) {} } }, 12000);
+      } catch (e) { me.rec = null; typed = true; yourTurn(b); }
+    }
+    buttons('ready');
+    if (!typed) {
+      // small pause so Sherlock's last word is not picked up, then listen straight away
+      me.timer = setTimeout(function () { if (sc === me && !me.dead && !me.rec) startListen(); }, 450);
+    }
+  }
+
+  function sceneEnd() {
+    var me = sc;
+    if (!me) return;
+    var ep = me.ep;
+    var results = me.results;
+    var sum = Se.summarize(results);
+    sceneStop();
+    stopAll();
+    flow(true);
+    testId = 'roleplay';
+    var info = commit({ words: Math.max(sum.spoken, 1), hitCount: sum.passed });
+    var miss = [];
+    results.forEach(function (r) { (r.miss || []).forEach(function (w) { if (w.length >= 4 && miss.indexOf(w) === -1) miss.push(w); }); });
+    var added = 0;
+    if (miss.length) {
+      var before = vocabList();
+      var after = N.add(before, miss.slice(0, 5));
+      added = after.filter(function (w) { return before.indexOf(w) === -1; }).length;
+      store.set('vocab', N.serialize(after));
+    }
+    var stars = '';
+    for (var k = 0; k < 3; k++) stars += k < sum.stars ? '⭐' : '☆';
+    var ph = ep.phrases.map(function (p) { return '<li><b>' + esc(p.en) + '</b><span>' + esc(lang === 'tr' ? p.tr : '') + '</span></li>'; }).join('');
+    show(
+      '<p class="eyebrow">' + esc(t('series_ep', { t: lang === 'tr' ? ep.titleTr : ep.title })) + '</p>' +
+      '<h1>' + esc(t('series_end_h')) + '</h1>' +
+      '<section class="card center"><p class="stars" aria-hidden="true">' + stars + '</p>' +
+        '<p>' + esc(t('series_end_stats', { p: sum.passed, n: sum.total, a: sum.avg })) + '</p></section>' +
+      rewardsHtml({ info: info, vocabAdded: added }) +
+      '<section class="card"><h2>' + esc(t('series_cliff')) + '</h2><p>' + esc(lang === 'tr' ? ep.cliffTr : ep.cliff) + '</p></section>' +
+      '<section class="card"><h2>' + esc(t('series_phrases')) + '</h2><ul class="phr">' + ph + '</ul></section>' +
+      '<button class="primary" id="scAgain">' + esc(t('series_replay')) + '</button>' +
+      '<div class="row"><button class="ghost" id="scHome">' + esc(t('btn_home')) + '</button></div>'
+    );
+    paintChrome();
+    on('scAgain', function () { scene(ep); });
+    on('scHome', home);
+  }
+
   function registerSW() {
     try {
       if ('serviceWorker' in navigator && /^https?:$/.test(window.location.protocol)) {

@@ -77,7 +77,8 @@
         'Bir meydan okuma linki oluşturup arkadaşlarına gönder. Aynı konuyu sırayla konuşursunuz; sonuçlar linkin içinde taşınır ve sıralama herkeste görünür. Ses ve metin paylaşılmaz.'
       ] },
       { h: 'Sınırlar ve uyarılar', p: [
-        'Analizler ve seviye tahminleri kabadır, resmi değildir. IELTS, ilgili hak sahiplerinin tescilli markasıdır ve bu site onlarla bağlantılı değildir.'
+        'Analizler ve seviye tahminleri kabadır, resmi değildir. IELTS, ilgili hak sahiplerinin tescilli markasıdır ve bu site onlarla bağlantılı değildir.',
+        'Sherlock Holmes ve Dr. Watson karakterleri Arthur Conan Doyle’un kamu malına geçmiş eserlerinden gelir. Dizideki tüm diyaloglar, hikâyeler ve çizimler bu sitenin özgün üretimidir; herhangi bir film, dizi ya da yayıncıyla bağlantısı yoktur.'
       ] },
       { h: 'İletişim', p: [
         'İşletmeci: {operator}. Geri bildirim ve talepler için: {contact}.'
@@ -159,7 +160,8 @@
         'Create a challenge link and send it to friends. You take turns on the same topic; results travel inside the link and everyone sees the ranking. No audio or text is shared.'
       ] },
       { h: 'Limits and notices', p: [
-        'Analyses and level estimates are rough and unofficial. IELTS is a registered trademark of its respective owners and this site is not affiliated with them.'
+        'Analyses and level estimates are rough and unofficial. IELTS is a registered trademark of its respective owners and this site is not affiliated with them.',
+        'The characters Sherlock Holmes and Dr. Watson come from Arthur Conan Doyle’s public-domain stories. All dialogue, plots and artwork in the series are original to this site and are not affiliated with any film, TV series or publisher.'
       ] },
       { h: 'Contact', p: [
         'Operator: {operator}. For feedback and requests: {contact}.'

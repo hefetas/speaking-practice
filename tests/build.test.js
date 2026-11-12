@@ -69,7 +69,7 @@ test('every t("key") used in ui.js exists in both languages', () => {
   let m;
   while ((m = re.exec(ui))) used.add(m[1]);
   assert.ok(used.size > 50, 'too few keys found: ' + used.size);
-  const dynamic = new Set(['lvl_', 'day', 'rank_', 'chal_', 'legal_title_', 'stamp_', 'badge_', 'pace_']);
+  const dynamic = new Set(['lvl_', 'day', 'rank_', 'chal_', 'legal_title_', 'stamp_', 'badge_', 'pace_', 'series_v']);
   used.forEach(k => { if (!dynamic.has(k)) assert.ok(k in I.tr && k in I.en, 'missing i18n key: ' + k); });
   // dynamic key families must be complete
   const P = require('../app/progress.js');
@@ -83,6 +83,7 @@ test('every t("key") used in ui.js exists in both languages', () => {
   P.badgesFor({ done: 0, words: 0, bestStreak: 0, stamps: [], weeksDone: 0 }).forEach(b => need.push('badge_' + b.id + '_t', 'badge_' + b.id + '_d'));
   ['slow', 'natural', 'fast'].forEach(k => need.push('pace_' + k));
   ['privacy', 'terms', 'about'].forEach(k => need.push('legal_title_' + k));
+  [0, 1, 2, 3].forEach(n => need.push('series_v' + n));
   need.forEach(k => assert.ok(k in I.tr && k in I.en, 'missing dynamic i18n key: ' + k));
   assert.deepStrictEqual(C.TESTS.map(x => x.id).sort(), P.PASSPORT_IDS.slice().sort());
 });

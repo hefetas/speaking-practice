@@ -350,6 +350,32 @@ button.primary.small { min-height: 48px; font-size: 15px; }
   .alert.soft { background: #1d3a2e; color: #bdeed6; }
 }
 .pill:empty { display: none; }
+
+/* ---- series (Sherlock) ---- */
+.seriescard { display: flex; gap: 14px; align-items: center; background: linear-gradient(135deg, #3a3f4b, #565c6e); color: #fff; border: 0; }
+.seriescard .big { font-size: 42px; line-height: 1; }
+.seriescard h2 { color: #fff; margin: 0 0 4px; }
+.seriescard p { color: #e6e8ef; margin: 0 0 10px; font-size: 14px; }
+.seriescard button { background: #ffd166; color: #3a2a00; border: 0; }
+.stage { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 400 / 340; background: #e9cfa6; box-shadow: 0 6px 0 rgba(0,0,0,.12); border: 3px solid transparent; transition: border-color .2s, box-shadow .2s; }
+.stage svg { display: block; width: 100%; height: 100%; }
+.stage.mine { border-color: #ff6b57; box-shadow: 0 0 0 5px rgba(255,107,87,.28), 0 6px 0 rgba(0,0,0,.12); }
+.subs { min-height: 92px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: var(--card, #fff); border: 1px solid rgba(0,0,0,.08); }
+.subs .who { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; opacity: .65; }
+.subs .line { font-size: 19px; font-weight: 700; line-height: 1.35; margin: 2px 0 0; }
+.subs .tr { font-size: 14px; opacity: .7; margin: 4px 0 0; }
+.turn { margin-top: 12px; }
+.turn .say { font-size: 22px; font-weight: 800; line-height: 1.4; margin: 6px 0 2px; }
+.turn .say .hit { color: #1d9d5a; }
+.turn .say .miss { color: #e0683f; text-decoration: underline wavy; }
+.turn .verdict { font-weight: 800; margin: 8px 0 2px; }
+.turn textarea { width: 100%; min-height: 64px; }
+.stars { font-size: 34px; letter-spacing: 4px; }
+.phr { list-style: none; padding: 0; margin: 8px 0 0; }
+.phr li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed rgba(0,0,0,.12); }
+@media (prefers-color-scheme: dark) { .subs { background: #1f2230; border-color: rgba(255,255,255,.1); } .phr li { border-color: rgba(255,255,255,.15); } }
+.turn .transcript { min-height: 40px; margin-top: 8px; }
+.turn .card { padding-bottom: 14px; }
 </style>
 </head>
 <body>
@@ -2237,6 +2263,337 @@ button.primary.small { min-height: 48px; font-size: 15px; }
 (function (root) {
   'use strict';
 
+  var L = (typeof module !== 'undefined' && module.exports && typeof require === 'function')
+    ? require('./logic.js')
+    : root.Logic;
+
+  // Original scripts. The characters (Sherlock Holmes, his friend) come from Arthur Conan Doyle's
+  // public-domain stories; every line of dialogue, the plot and all artwork are our own.
+  function S(mood, en, tr) { return { who: 'sherlock', mood: mood, en: en, tr: tr }; }
+  function Y(en, tr) { return { who: 'you', en: en, tr: tr }; }
+
+  var EPISODES = [
+    {
+      id: 'e1',
+      title: 'The Missing Yogurt',
+      titleTr: 'Kayıp Yoğurt',
+      blurb: 'Sherlock is your flatmate. Someone ate his last strawberry yogurt. Can you help him solve the case?',
+      blurbTr: 'Sherlock senin ev arkadaşın. Biri son çilekli yoğurdunu yemiş. Vakayı çözmesine yardım edebilir misin?',
+      cliff: 'Tomorrow: the neighbor opens the door… and she is holding an empty yogurt pot!',
+      cliffTr: 'Yarın: Komşu kapıyı açıyor… ve elinde boş bir yoğurt kabı var!',
+      phrases: [
+        { en: 'Do not touch anything', tr: 'Hiçbir şeye dokunma' },
+        { en: 'What happened', tr: 'Ne oldu?' },
+        { en: 'in a hurry', tr: 'aceleyle' },
+        { en: 'spare key', tr: 'yedek anahtar' },
+        { en: 'at midnight', tr: 'gece yarısı' },
+        { en: 'I promise', tr: 'söz veriyorum' }
+      ],
+      beats: [
+        S('excited', 'Good morning! Do not touch anything. We have a case!', 'Günaydın! Hiçbir şeye dokunma. Bir vakamız var!'),
+        Y('A case? What happened?', 'Bir vaka mı? Ne oldu?'),
+        S('angry', 'Someone ate my strawberry yogurt last night. It was the last one.', 'Dün gece biri çilekli yoğurdumu yedi. Sonuncusuydu.'),
+        Y('Maybe you ate it yourself and forgot.', 'Belki kendin yedin ve unuttun.'),
+        S('think', 'Impossible. I never forget yogurt. Now, look at this spoon in the sink.', 'İmkânsız. Yoğurdu asla unutmam. Şimdi lavabodaki şu kaşığa bak.'),
+        Y('It is only a spoon. Why is it important?', 'Sadece bir kaşık. Neden önemli?'),
+        S('think', 'It is clean, but there is a small pink drop on it. Someone washed it in a hurry.', 'Temiz ama üstünde küçük pembe bir damla var. Biri aceleyle yıkamış.'),
+        Y('Maybe it was our neighbor. She has a spare key.', 'Belki komşumuzdu. Onda yedek anahtar var.'),
+        S('suspicious', 'Interesting. And where were you at midnight?', 'İlginç. Peki sen gece yarısı neredeydin?'),
+        Y('I was asleep. I went to bed at ten, I promise.', 'Uyuyordum. Saat ona yattım, söz veriyorum.'),
+        S('shock', 'Hmm. Then why is there a pink spot on your sleeve?', 'Hmm. O zaman kolunda neden pembe bir leke var?'),
+        Y('That is jam! It is not yogurt!', 'O reçel! Yoğurt değil!'),
+        S('happy', 'We will see. Tomorrow we visit the neighbor. Bring your key!', 'Göreceğiz. Yarın komşuyu ziyaret ediyoruz. Anahtarını getir!')
+      ]
+    }
+  ];
+
+  var NUM = { 0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
+    11: 'eleven', 12: 'twelve', 13: 'thirteen', 14: 'fourteen', 15: 'fifteen', 16: 'sixteen', 17: 'seventeen', 18: 'eighteen', 19: 'nineteen', 20: 'twenty' };
+
+  // Speech recognition returns contractions and digits; our scripts spell everything out.
+  function expand(text) {
+    var s = String(text || '').replace(/[’‘]/g, "'").toLowerCase();
+    s = s.replace(/\bcan't\b/g, 'can not').replace(/\bwon't\b/g, 'will not').replace(/\bcannot\b/g, 'can not')
+      .replace(/n't\b/g, ' not')
+      .replace(/\b(it|that|he|she|there|what|who|here|let)'s\b/g, '$1 is')
+      .replace(/'m\b/g, ' am').replace(/'re\b/g, ' are').replace(/'ve\b/g, ' have').replace(/'ll\b/g, ' will').replace(/'d\b/g, ' would');
+    return L.normalize(s).split(' ').filter(Boolean).map(function (w) {
+      return /^\d+$/.test(w) && NUM[+w] ? NUM[+w] : w;
+    });
+  }
+
+  function starsFor(pct) { return pct >= 90 ? 3 : (pct >= 75 ? 2 : (pct >= 60 ? 1 : 0)); }
+
+  function scoreLine(expected, heard) {
+    var want = [];
+    var seen = {};
+    expand(expected).forEach(function (w) { if (!seen[w]) { seen[w] = true; want.push(w); } });
+    var have = {};
+    expand(heard).forEach(function (w) { have[w] = true; });
+    var miss = want.filter(function (w) { return !have[w]; });
+    var pct = want.length ? Math.round(((want.length - miss.length) / want.length) * 100) : 0;
+    return { pct: pct, ok: pct >= 60, stars: starsFor(pct), miss: miss, hit: want.filter(function (w) { return have[w]; }) };
+  }
+
+  function summarize(results) {
+    if (!results || !results.length) return { avg: 0, passed: 0, spoken: 0, stars: 0, total: 0 };
+    var sum = 0, passed = 0, spoken = 0;
+    results.forEach(function (r) { sum += r.pct; if (r.pct >= 60) passed++; spoken += r.spoken || 0; });
+    var avg = Math.round(sum / results.length);
+    return { avg: avg, passed: passed, spoken: spoken, stars: starsFor(avg), total: results.length };
+  }
+
+  function get(id) {
+    for (var i = 0; i < EPISODES.length; i++) if (EPISODES[i].id === id) return EPISODES[i];
+    return null;
+  }
+
+  function episodeFor(dateKey) {
+    var p = String(dateKey).split('-');
+    var days = Math.floor(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000);
+    return EPISODES[((days % EPISODES.length) + EPISODES.length) % EPISODES.length];
+  }
+
+  var api = { EPISODES: EPISODES, expand: expand, starsFor: starsFor, scoreLine: scoreLine, summarize: summarize, get: get, episodeFor: episodeFor };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.Series = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+;
+(function (root) {
+  'use strict';
+
+  // ---------- pure math (unit-tested) ----------
+  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+  // Two-link inverse kinematics. Shoulder is the origin, (tx,ty) the wanted hand position.
+  // side: -1 left arm / +1 right arm; the elbow bends outward, away from the body.
+  function ik(l1, l2, tx, ty, side) {
+    var d = Math.hypot(tx, ty);
+    var phi = Math.atan2(ty, tx);
+    var dd = clamp(d, Math.abs(l1 - l2) + 1e-3, l1 + l2 - 1e-3);
+    var cosA = clamp((l1 * l1 + dd * dd - l2 * l2) / (2 * l1 * dd), -1, 1);
+    var a = Math.acos(cosA);
+    var e1 = { ex: l1 * Math.cos(phi + a), ey: l1 * Math.sin(phi + a) };
+    var e2 = { ex: l1 * Math.cos(phi - a), ey: l1 * Math.sin(phi - a) };
+    var pick = (side * e1.ex > side * e2.ex || (side * e1.ex === side * e2.ex && e1.ey >= e2.ey)) ? e1 : e2;
+    return { ex: pick.ex, ey: pick.ey, hx: dd * Math.cos(phi), hy: dd * Math.sin(phi) };
+  }
+
+  // Damped spring: s = {x, v}. zeta 1 = critically damped (no overshoot); <1 bounces a little.
+  function spring(s, target, dt, w, zeta) {
+    var z = zeta == null ? 1 : zeta;
+    var left = clamp(dt, 0, 0.25);
+    var h = 1 / 120;
+    while (left > 1e-9) {
+      var step = Math.min(h, left);
+      s.v += (w * w * (target - s.x) - 2 * z * w * s.v) * step;
+      s.x += s.v * step;
+      left -= step;
+    }
+    return s;
+  }
+
+  function mouthOpen(t, speaking) {
+    if (!speaking) return 0;
+    var v = 0.55 * Math.abs(Math.sin(t * 10.5)) + 0.45 * Math.abs(Math.sin(t * 6.7 + 1.3));
+    return clamp(v * (0.4 + 0.6 * Math.abs(Math.sin(t * 2.3 + 0.4))), 0, 1);
+  }
+
+  function estimateMs(text) {
+    var n = String(text || '').trim().split(/\s+/).filter(Boolean).length;
+    return Math.max(900, n * 380 + 500);
+  }
+
+  // Every mood is a full set of rig targets. Hands are positions relative to each shoulder.
+  var PARAMS = ['lean', 'headRot', 'headX', 'browLy', 'browRy', 'browA', 'smile', 'jaw', 'eyeOpen', 'lookX', 'lookY', 'hLx', 'hLy', 'hRx', 'hRy', 'shake'];
+  function pose(o) {
+    var base = { lean: 0, headRot: 0, headX: 0, browLy: 0, browRy: 0, browA: 0, smile: 0.15, jaw: 0, eyeOpen: 1, lookX: 0, lookY: 0,
+      hLx: -12, hLy: 138, hRx: 12, hRy: 138, shake: 0 };
+    Object.keys(o).forEach(function (k) { base[k] = o[k]; });
+    return base;
+  }
+  var POSES = {
+    idle: pose({}),
+    listen: pose({ lean: 0.2, headRot: -3, browLy: -2, browRy: -2, smile: 0.1 }),
+    excited: pose({ lean: 0.35, headRot: 4, browLy: -5, browRy: -5, smile: 0.9, eyeOpen: 1.15, hLx: -62, hLy: 10, hRx: 62, hRy: 10 }),
+    angry: pose({ lean: 0.5, headRot: -2, browLy: 2, browRy: 2, browA: 16, smile: -0.7, eyeOpen: 0.8, hLx: -25, hLy: 100, hRx: 20, hRy: -38, shake: 1 }),
+    think: pose({ lean: 0.2, headRot: 6, browLy: -3, browRy: 2, browA: -4, smile: -0.1, eyeOpen: 0.85, lookX: 0.6, lookY: -0.6, hRx: -43, hRy: -53, hLx: 28, hLy: 72 }),
+    suspicious: pose({ lean: 0.85, headRot: -5, browLy: -7, browRy: 3, browA: 8, smile: -0.2, eyeOpen: 0.6, hRx: -34, hRy: -45, hLx: -14, hLy: 128 }),
+    shock: pose({ lean: 0.3, browLy: -9, browRy: -9, browA: -6, smile: -0.3, jaw: 0.7, eyeOpen: 1.35, hLx: -42, hLy: -28, hRx: 42, hRy: -28 }),
+    happy: pose({ lean: 0.25, headRot: 3, browLy: -3, browRy: -3, smile: 1, eyeOpen: 0.9, hLx: -30, hLy: 62, hRx: 38, hRy: -6 })
+  };
+
+  // ---------- drawing ----------
+  var SK = '#e8b98f', SKD = '#c99a76', HAIR = '#2b2420', COAT = '#3a3f4b', CAPE = '#474d5b';
+  var SHL = { x: 138, y: 318 }, SHR = { x: 262, y: 318 };
+  var L1 = 82, L2 = 76;
+
+  function svg() {
+    var arm = function (n) {
+      return '<path data-r="arm' + n + '1" fill="none" stroke="' + COAT + '" stroke-width="30" stroke-linecap="round"/>' +
+        '<path data-r="arm' + n + '2" fill="none" stroke="' + COAT + '" stroke-width="25" stroke-linecap="round"/>' +
+        '<circle data-r="cuff' + n + '" r="14" fill="#f3efe6"/><circle data-r="hand' + n + '" r="12" fill="' + SK + '" stroke="' + SKD + '" stroke-width="1.5"/>';
+    };
+    return '<svg viewBox="0 0 400 460" role="img" aria-label="Sherlock" preserveAspectRatio="xMidYMid slice">' +
+      '<defs><linearGradient id="stWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6e7cc"/><stop offset="1" stop-color="#e9cfa6"/></linearGradient>' +
+      '<radialGradient id="stVig" cx="50%" cy="45%" r="75%"><stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#2b1a0a" stop-opacity="0.35"/></radialGradient></defs>' +
+      // kitchen background (moves slightly against the camera for parallax)
+      '<g data-r="bg"><rect x="-30" y="-20" width="460" height="500" fill="url(#stWall)"/>' +
+      '<rect x="28" y="36" width="116" height="124" rx="6" fill="#bfe3ff" stroke="#8a6a4a" stroke-width="7"/><path d="M86 36v124M28 98h116" stroke="#8a6a4a" stroke-width="5"/>' +
+      '<path d="M20 30q16 60 4 140h30q-14-80 0-140z" fill="#d86a5e" opacity=".9"/>' +
+      '<rect x="292" y="52" width="96" height="340" rx="10" fill="#dfe7ef" stroke="#aab6c4" stroke-width="3"/><path d="M292 176h96" stroke="#aab6c4" stroke-width="3"/>' +
+      '<rect x="300" y="112" width="12" height="40" rx="5" fill="#aab6c4"/>' +
+      '<rect x="318" y="84" width="62" height="50" fill="#fff7a8" transform="rotate(-4 349 109)"/><text x="349" y="106" font-size="11" font-weight="700" text-anchor="middle" fill="#7a3b2e" transform="rotate(-4 349 109)">YOGURT:</text><text x="349" y="121" font-size="12" font-weight="800" text-anchor="middle" fill="#c0392b" transform="rotate(-4 349 109)">MINE!</text>' +
+      '<rect x="-10" y="352" width="160" height="22" rx="4" fill="#a98763"/><rect x="-10" y="374" width="160" height="90" fill="#8d6f4f"/>' +
+      '<ellipse cx="48" cy="346" rx="22" ry="5" fill="#c9d2da"/><path d="M30 342q18 4 40-2" stroke="#9aa6b2" stroke-width="3" fill="none"/>' +
+      '<ellipse cx="96" cy="347" rx="9" ry="4" fill="#d8dde2"/><circle cx="101" cy="346" r="2.2" fill="#ff7aa8"/>' +
+      '</g>' +
+      '<g data-r="cam"><g data-r="body">' +
+      '<path d="M86 340Q98 288 160 284L240 284Q302 288 314 340L324 470L76 470Z" fill="' + CAPE + '"/>' +
+      '<path d="M112 470L122 330Q128 300 160 294L240 294Q272 300 278 330L288 470Z" fill="' + COAT + '"/>' +
+      '<path d="M176 290L200 356L224 290Z" fill="#f3efe6"/><path d="M178 292L200 330L222 292" fill="none" stroke="#d8d2c4" stroke-width="2"/>' +
+      '<path d="M200 330l-10 12 10 8 10-8z" fill="#a33a3a"/>' +
+      '<rect x="186" y="256" width="28" height="42" rx="10" fill="' + SK + '"/></g>' +
+      // head
+      '<g data-r="head">' +
+      '<circle cx="148" cy="206" r="10" fill="' + SK + '"/><circle cx="252" cy="206" r="10" fill="' + SK + '"/>' +
+      '<ellipse cx="200" cy="202" rx="52" ry="62" fill="' + SK + '"/>' +
+      '<path d="M150 190Q152 150 200 146Q248 150 250 190Q226 168 200 170Q174 168 150 190Z" fill="' + HAIR + '"/>' +
+      // deerstalker cap (sits above the brows)
+      '<g transform="translate(0 -15)"><path d="M144 184Q146 112 200 108Q254 112 256 184Q200 162 144 184Z" fill="#8c6a43"/>' +
+      '<path d="M158 170Q200 146 242 170M164 150Q200 130 236 150M200 108V166" fill="none" stroke="#6a4c2c" stroke-width="2.5" opacity=".75"/>' +
+      '<path d="M146 180Q200 200 254 180L257 191Q200 212 143 191Z" fill="#6a4c2c"/><circle cx="200" cy="106" r="6" fill="#6a4c2c"/>' +
+      '<path d="M142 186q-8 22-2 40q8-8 10-30z" fill="#7a5a38"/><path d="M258 186q8 22 2 40q-8-8-10-30z" fill="#7a5a38"/></g>' +
+      // face
+      '<ellipse data-r="eyeL" cx="178" cy="208" rx="11" ry="9" fill="#fff" stroke="' + SKD + '" stroke-width="1"/><ellipse data-r="eyeR" cx="222" cy="208" rx="11" ry="9" fill="#fff" stroke="' + SKD + '" stroke-width="1"/>' +
+      '<ellipse data-r="pupL" cx="178" cy="208" rx="4.6" ry="4.6" fill="' + HAIR + '"/><ellipse data-r="pupR" cx="222" cy="208" rx="4.6" ry="4.6" fill="' + HAIR + '"/>' +
+      '<g data-r="browL"><path d="M-15 0Q0 -6 15 0" fill="none" stroke="' + HAIR + '" stroke-width="4.5" stroke-linecap="round"/></g>' +
+      '<g data-r="browR"><path d="M-15 0Q0 -6 15 0" fill="none" stroke="' + HAIR + '" stroke-width="4.5" stroke-linecap="round"/></g>' +
+      '<path d="M201 206Q192 232 203 237" fill="none" stroke="' + SKD + '" stroke-width="3" stroke-linecap="round"/>' +
+      '<path data-r="mouth" stroke="#7a3a2e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</g>' +
+      arm('L') + arm('R') + '</g>' +
+      // first-person foreground: the table and your cup of tea
+      '<g data-r="pov"><rect x="-10" y="434" width="420" height="40" fill="#6b4a2f"/><rect x="-10" y="434" width="420" height="5" fill="#8a6743"/>' +
+      '<rect x="40" y="398" width="40" height="42" rx="6" fill="#f4f4f4" stroke="#cfcfcf" stroke-width="2"/><path d="M80 408q22 2 18 18q-4 12-18 10" fill="none" stroke="#f4f4f4" stroke-width="7"/>' +
+      '<rect x="44" y="402" width="32" height="8" rx="3" fill="#b9733a"/>' +
+      '<path data-r="steam1" d="M54 390q-6-10 0-18q6-8 0-16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/>' +
+      '<path data-r="steam2" d="M68 390q-6-10 0-18q6-8 0-16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".6"/></g>' +
+      '<rect width="400" height="460" fill="url(#stVig)" pointer-events="none"/></svg>';
+  }
+
+  function mount(el, opts) {
+    opts = opts || {};
+    var reduced = !!opts.reduced;
+    el.innerHTML = svg();
+    var q = function (n) { return el.querySelector('[data-r="' + n + '"]'); };
+    var R = {};
+    ['bg', 'cam', 'body', 'head', 'eyeL', 'eyeR', 'pupL', 'pupR', 'browL', 'browR', 'mouth', 'armL1', 'armL2', 'cuffL', 'handL', 'armR1', 'armR2', 'cuffR', 'handR', 'steam1', 'steam2']
+      .forEach(function (n) { R[n] = q(n); });
+
+    var st = {};
+    PARAMS.forEach(function (k) { st[k] = { x: POSES.idle[k], v: 0 }; });
+    var mouth = { x: 0, v: 0 };
+    var nodS = { x: 0, v: 0 };
+    var pose0 = POSES.idle;
+    var talking = false;
+    var t = 0, last = 0, raf = 0, nextBlink = 2.2, blinkT = -1, alive = true;
+
+    function frame(now) {
+      if (!alive) return;
+      var dt = last ? (now - last) / 1000 : 1 / 60;
+      last = now;
+      t += Math.min(dt, 0.25);
+      if (t > nextBlink) { blinkT = 0; nextBlink = t + 2.4 + Math.random() * 2.8; }
+      var blink = 1;
+      if (blinkT >= 0) { blinkT += dt; var p = blinkT / 0.15; blink = p >= 1 ? (blinkT = -1, 1) : Math.abs(1 - 2 * p) * 0.92 + 0.08; }
+
+      var w = reduced ? 40 : 13;
+      PARAMS.forEach(function (k) { spring(st[k], pose0[k], dt, k === 'eyeOpen' || k === 'smile' ? w * 1.6 : w); });
+      var m = spring(mouth, mouthOpen(t, talking), dt, 34).x;
+      spring(nodS, 0, dt, 16, 0.32);
+
+      var amp = reduced ? 0 : 1;
+      var breath = Math.sin(t * 1.9) * 2.2 * amp;
+      var sway = Math.sin(t * 0.55) * 3.5 * amp;
+      var bob = talking ? Math.sin(t * 6) * 1.1 * amp : 0;
+      var shake = st.shake.x * Math.sin(t * 19) * 7 * amp;
+      var gest = talking ? Math.sin(t * 4.1) * 5 * amp : 0;
+
+      var lean = st.lean.x;
+      R.bg.setAttribute('transform', 'translate(' + (-sway * 0.5).toFixed(2) + ' 0)');
+      R.cam.setAttribute('transform', 'translate(' + sway.toFixed(2) + ' ' + (-lean * 10).toFixed(2) + ') translate(200 460) scale(' + (1 + lean * 0.09).toFixed(4) + ') translate(-200 -460)');
+      R.body.setAttribute('transform', 'translate(0 ' + breath.toFixed(2) + ')');
+      R.head.setAttribute('transform', 'translate(' + st.headX.x.toFixed(2) + ' ' + (breath * 0.8 + nodS.x * 0.3 + bob).toFixed(2) + ') rotate(' + (st.headRot.x + nodS.x * 0.4 + Math.sin(t * 0.9) * 1.1 * amp).toFixed(2) + ' 200 268)');
+
+      var eo = clamp(st.eyeOpen.x * blink, 0.05, 1.4);
+      var ry = 9 * eo;
+      var look = { x: st.lookX.x + Math.sin(t * 0.7) * 0.15 * amp, y: st.lookY.x };
+      [['L', 178], ['R', 222]].forEach(function (e) {
+        R['eye' + e[0]].setAttribute('ry', ry.toFixed(2));
+        R['pup' + e[0]].setAttribute('cx', (e[1] + look.x * 3.6).toFixed(2));
+        R['pup' + e[0]].setAttribute('cy', (208 + look.y * 3).toFixed(2));
+        R['pup' + e[0]].setAttribute('ry', clamp(ry - 0.6, 0.1, 4.6).toFixed(2));
+      });
+      R.browL.setAttribute('transform', 'translate(178 ' + (186 + st.browLy.x).toFixed(2) + ') rotate(' + st.browA.x.toFixed(2) + ')');
+      R.browR.setAttribute('transform', 'translate(222 ' + (186 + st.browRy.x).toFixed(2) + ') rotate(' + (-st.browA.x).toFixed(2) + ')');
+
+      var sm = clamp(st.smile.x, -1, 1);
+      var open = clamp(st.jaw.x + m, 0, 1);
+      var half = 16 + Math.max(sm, 0) * 6;
+      var yc = 247 - sm * 6;
+      var x1 = 200 - half, x2 = 200 + half;
+      var mid = yc + 8 * sm;
+      var d;
+      if (open > 0.05) {
+        d = 'M' + x1.toFixed(1) + ' ' + yc.toFixed(1) + 'Q200 ' + (yc + 4 * sm).toFixed(1) + ' ' + x2.toFixed(1) + ' ' + yc.toFixed(1) +
+          'Q200 ' + (yc + 6 + open * 26 + Math.max(sm, 0) * 6).toFixed(1) + ' ' + x1.toFixed(1) + ' ' + yc.toFixed(1) + 'Z';
+        R.mouth.setAttribute('fill', '#6e2323');
+      } else {
+        d = 'M' + x1.toFixed(1) + ' ' + yc.toFixed(1) + 'Q200 ' + mid.toFixed(1) + ' ' + x2.toFixed(1) + ' ' + yc.toFixed(1);
+        R.mouth.setAttribute('fill', 'none');
+      }
+      R.mouth.setAttribute('d', d);
+
+      [['L', SHL, -1, st.hLx.x, st.hLy.x], ['R', SHR, 1, st.hRx.x, st.hRy.x]].forEach(function (a) {
+        var tx = a[3] + shake * (a[0] === 'R' ? 1 : -0.6);
+        var ty = a[4] + gest * (a[0] === 'R' ? 1 : 0.5) + breath * 0.6;
+        var r = ik(L1, L2, tx, ty, a[2]);
+        var S0 = a[1];
+        var ex = S0.x + r.ex, ey = S0.y + r.ey, hx = S0.x + r.hx, hy = S0.y + r.hy + 0;
+        R['arm' + a[0] + '1'].setAttribute('d', 'M' + S0.x + ' ' + (S0.y + breath).toFixed(2) + 'L' + ex.toFixed(2) + ' ' + ey.toFixed(2));
+        R['arm' + a[0] + '2'].setAttribute('d', 'M' + ex.toFixed(2) + ' ' + ey.toFixed(2) + 'L' + hx.toFixed(2) + ' ' + hy.toFixed(2));
+        R['cuff' + a[0]].setAttribute('cx', hx.toFixed(2)); R['cuff' + a[0]].setAttribute('cy', hy.toFixed(2));
+        R['hand' + a[0]].setAttribute('cx', hx.toFixed(2)); R['hand' + a[0]].setAttribute('cy', (hy + 2).toFixed(2));
+      });
+
+      R.steam1.setAttribute('transform', 'translate(0 ' + (-((t * 14) % 14)).toFixed(2) + ')');
+      R.steam1.setAttribute('opacity', (0.65 - ((t * 14) % 14) / 24).toFixed(2));
+      R.steam2.setAttribute('transform', 'translate(0 ' + (-(((t * 14) + 7) % 14)).toFixed(2) + ')');
+      R.steam2.setAttribute('opacity', (0.65 - (((t * 14) + 7) % 14) / 24).toFixed(2));
+
+      raf = root.requestAnimationFrame(frame);
+    }
+    raf = root.requestAnimationFrame(frame);
+
+    return {
+      setMood: function (name) { pose0 = POSES[name] || POSES.idle; },
+      speaking: function (on) { talking = !!on; },
+      nod: function () { nodS.v += 160; },
+      destroy: function () { alive = false; if (raf && root.cancelAnimationFrame) root.cancelAnimationFrame(raf); }
+    };
+  }
+
+  var api = { ik: ik, spring: spring, mouthOpen: mouthOpen, estimateMs: estimateMs, PARAMS: PARAMS, POSES: POSES, mount: mount, clamp: clamp };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  root.Stage = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+;
+(function (root) {
+  'use strict';
+
   // [key, Turkish, English]
   var ROWS = [
     ['foot', 'Verilerin cihazında saklanır. Konuşma tanıma tarayıcın tarafından yapılır.', 'Your data stays on your device. Speech recognition is done by your browser.'],
@@ -2380,6 +2737,37 @@ button.primary.small { min-height: 48px; font-size: 15px; }
     ['btn_again', 'Tekrar dene', 'Try again'],
     ['btn_next', 'Başka test', 'Another test'],
     ['btn_home', 'Ana sayfa', 'Home'],
+    ['series_card_h', 'Sherlock ile günlük hayat', 'Everyday life with Sherlock'],
+    ['series_card_p', 'Sherlock senin ev arkadaşın. O soru sorunca sıra sende: repliği söyle, hikâye ilerlesin.', 'Sherlock is your flatmate. When he asks you something, it is your turn: say the line and the story moves on.'],
+    ['series_play', 'Bölümü oyna', 'Play episode'],
+    ['series_ep', 'Bölüm 1: {t}', 'Episode 1: {t}'],
+    ['series_intro_hint', 'Ekran Sherlock’a bakıyor, sen onun arkadaşısın. Sıra sende olunca ekrandaki repliği yüksek sesle söyle. Takılırsan “Dinle” ile nasıl söylendiğini duyabilirsin.', 'The screen looks at Sherlock; you are his friend. When it is your turn, say the line on the screen out loud. If you get stuck, press “Hear it” to listen first.'],
+    ['series_phrases', 'Bu bölümün kalıpları', 'Phrases from this episode'],
+    ['series_start', 'Başla', 'Start'],
+    ['series_you', 'Sen', 'You'],
+    ['series_your_turn', 'Sıra sende', 'Your turn'],
+    ['series_say_it', 'Şunu söyle:', 'Say this:'],
+    ['series_hear', '🔊 Dinle', '🔊 Hear it'],
+    ['series_mic', '🎤 Konuş', '🎤 Speak'],
+    ['series_listening', 'Dinliyorum…', 'Listening…'],
+    ['series_done', 'Bitti', 'Done'],
+    ['series_retry', 'Tekrar dene', 'Try again'],
+    ['series_skip', 'Atla', 'Skip'],
+    ['series_next', 'Devam', 'Continue'],
+    ['series_send', 'Gönder', 'Send'],
+    ['series_typed_ph', 'Repliği buraya yaz', 'Type the line here'],
+    ['series_missed', 'Eksik kelimeler:', 'Missed words:'],
+    ['series_quit', 'Bölümden çık', 'Leave episode'],
+    ['series_nosound', 'Bu tarayıcıda sesli okuma yok; Sherlock’un repliklerini yazıdan takip et.', 'This browser has no text-to-speech; follow Sherlock’s lines in the subtitles.'],
+    ['series_v3', 'Mükemmel!', 'Perfect!'],
+    ['series_v2', 'Çok iyi!', 'Very good!'],
+    ['series_v1', 'Anlaşıldı, devam!', 'Understood, carry on!'],
+    ['series_v0', 'Biraz daha net söylemeyi dene.', 'Try to say it a bit more clearly.'],
+    ['series_end_h', 'Bölüm bitti!', 'Episode finished!'],
+    ['series_end_stats', '{p}/{n} replik tamam · ortalama %{a}', '{p}/{n} lines done · average {a}%'],
+    ['series_cliff', 'Sonraki bölüm', 'Next episode'],
+    ['series_replay', 'Bölümü tekrar oyna', 'Play again'],
+    ['series_show_tr', 'Türkçesi', 'Translation'],
 
     ['ch_invite_title', 'Arkadaşını meydan oku', 'Challenge a friend'],
     ['ch_invite_sub', 'Aynı konu ve aynı testle sırayla konuşun. Sıralama linkin içinde taşınır.', 'Take turns on the same topic and test. The ranking travels inside the link.'],
@@ -2617,7 +3005,8 @@ button.primary.small { min-height: 48px; font-size: 15px; }
         'Bir meydan okuma linki oluşturup arkadaşlarına gönder. Aynı konuyu sırayla konuşursunuz; sonuçlar linkin içinde taşınır ve sıralama herkeste görünür. Ses ve metin paylaşılmaz.'
       ] },
       { h: 'Sınırlar ve uyarılar', p: [
-        'Analizler ve seviye tahminleri kabadır, resmi değildir. IELTS, ilgili hak sahiplerinin tescilli markasıdır ve bu site onlarla bağlantılı değildir.'
+        'Analizler ve seviye tahminleri kabadır, resmi değildir. IELTS, ilgili hak sahiplerinin tescilli markasıdır ve bu site onlarla bağlantılı değildir.',
+        'Sherlock Holmes ve Dr. Watson karakterleri Arthur Conan Doyle’un kamu malına geçmiş eserlerinden gelir. Dizideki tüm diyaloglar, hikâyeler ve çizimler bu sitenin özgün üretimidir; herhangi bir film, dizi ya da yayıncıyla bağlantısı yoktur.'
       ] },
       { h: 'İletişim', p: [
         'İşletmeci: {operator}. Geri bildirim ve talepler için: {contact}.'
@@ -2699,7 +3088,8 @@ button.primary.small { min-height: 48px; font-size: 15px; }
         'Create a challenge link and send it to friends. You take turns on the same topic; results travel inside the link and everyone sees the ranking. No audio or text is shared.'
       ] },
       { h: 'Limits and notices', p: [
-        'Analyses and level estimates are rough and unofficial. IELTS is a registered trademark of its respective owners and this site is not affiliated with them.'
+        'Analyses and level estimates are rough and unofficial. IELTS is a registered trademark of its respective owners and this site is not affiliated with them.',
+        'The characters Sherlock Holmes and Dr. Watson come from Arthur Conan Doyle’s public-domain stories. All dialogue, plots and artwork in the series are original to this site and are not affiliated with any film, TV series or publisher.'
       ] },
       { h: 'Contact', p: [
         'Operator: {operator}. For feedback and requests: {contact}.'
@@ -2725,6 +3115,8 @@ button.primary.small { min-height: 48px; font-size: 15px; }
   var N = window.Notebook;
   var ICS = window.Ics;
   var I = window.I18N;
+  var Se = window.Series;
+  var St = window.Stage;
   var G = window.Legal;
   var CFG = window.CONFIG || {};
   var screen = document.getElementById('screen');
@@ -2833,6 +3225,7 @@ button.primary.small { min-height: 48px; font-size: 15px; }
   var audioUrl = null;
   var chalState = null; // { ch, joined }
   var view = null;
+  var sc = null; // running series episode
   var consented = false;
 
   function tests() { return mode === 'ielts' ? C.IELTS_TESTS : C.TESTS; }
@@ -3073,6 +3466,7 @@ button.primary.small { min-height: 48px; font-size: 15px; }
       discardAudio(run);
       run = null;
     }
+    sceneStop();
     if (synth) { try { synth.cancel(); } catch (e) {} }
     if (audioUrl) { try { URL.revokeObjectURL(audioUrl); } catch (e) {} audioUrl = null; }
   }
@@ -3170,6 +3564,8 @@ button.primary.small { min-height: 48px; font-size: 15px; }
     var vc = vocabList().length;
     show(
       '<section class="hero">' + hero + '</section>' +
+      (isI ? '' : '<section class="card seriescard"><span class="big" aria-hidden="true">🕵️</span><div><h2>' + esc(t('series_card_h')) + '</h2><p>' + esc(t('series_card_p')) + '</p>' +
+        '<button class="primary small" id="seriesGo">' + esc(t('series_play')) + '</button></div></section>') +
       '<div class="seg two" role="group" aria-label="' + esc(t('mode_label')) + '" style="margin-top:14px">' +
         '<button data-mode="daily" class="' + (!isI ? 'on' : '') + '" aria-pressed="' + (!isI) + '">' + esc(t('mode_daily')) + '</button>' +
         '<button data-mode="ielts" class="' + (isI ? 'on' : '') + '" aria-pressed="' + isI + '">' + esc(t('mode_ielts')) + '</button>' +
@@ -3206,6 +3602,7 @@ button.primary.small { min-height: 48px; font-size: 15px; }
     on('go', function () { if (!testId || tests().every(function (x) { return x.id !== testId; })) pickNext(); card(); });
     on('invite', invite);
     on('vocabOpen', vocab);
+    on('seriesGo', function () { sceneIntro(Se.episodeFor(L.dateKey(new Date()))); });
   }
 
   function progress() {
@@ -3944,6 +4341,285 @@ button.primary.small { min-height: 48px; font-size: 15px; }
 
   var pendingChallenge = null;
   var badHash = false;
+
+  // ---------- series (Sherlock): you are his friend, first person ----------
+  function pickVoice(male) {
+    if (!synth || !synth.getVoices) return null;
+    var vs = synth.getVoices() || [];
+    var en = vs.filter(function (v) { return /^en/i.test(v.lang); });
+    var m = en.filter(function (v) { return /daniel|alex|david|george|james|thomas|fred|male|google uk english male/i.test(v.name); });
+    var gb = en.filter(function (v) { return /en[-_]GB/i.test(v.lang); });
+    if (male) return m[0] || gb[0] || en[0] || null;
+    return en.filter(function (v) { return /en[-_]US/i.test(v.lang) && !/male\b/i.test(v.name); })[0] || en[0] || null;
+  }
+  function speakLine(text, male, done) {
+    var fired = false;
+    function fin() { if (fired) return; fired = true; if (sc && sc.ttsTimer) { clearTimeout(sc.ttsTimer); sc.ttsTimer = null; } done(); }
+    var est = St.estimateMs(text);
+    if (!synth || !window.SpeechSynthesisUtterance) {
+      sc.ttsTimer = setTimeout(fin, est);
+      return;
+    }
+    try {
+      synth.cancel();
+      var u = new window.SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.92;
+      u.pitch = male ? 0.8 : 1.05;
+      var v = pickVoice(male);
+      if (v) { u.voice = v; u.lang = v.lang; }
+      u.onend = fin;
+      u.onerror = fin;
+      synth.speak(u);
+      sc.ttsTimer = setTimeout(fin, est * 1.8 + 1500);
+    } catch (e) { sc.ttsTimer = setTimeout(fin, est); }
+  }
+
+  function sceneStop() {
+    if (!sc) return;
+    var s0 = sc;
+    sc = null;
+    s0.dead = true;
+    if (s0.ttsTimer) clearTimeout(s0.ttsTimer);
+    if (s0.timer) clearTimeout(s0.timer);
+    if (s0.rec) { try { s0.rec.onend = null; s0.rec.onresult = null; s0.rec.onerror = null; s0.rec.abort(); } catch (e) {} }
+    if (s0.ctl) s0.ctl.destroy();
+    if (synth) { try { synth.cancel(); } catch (e) {} }
+  }
+
+  function sceneIntro(ep) {
+    stopAll();
+    view = function () { sceneIntro(ep); };
+    flow(true);
+    var ph = ep.phrases.map(function (p) { return '<li><b>' + esc(p.en) + '</b><span>' + esc(lang === 'tr' ? p.tr : '') + '</span></li>'; }).join('');
+    show(
+      '<p class="eyebrow">' + esc(t('series_card_h')) + '</p>' +
+      '<h1>' + esc(t('series_ep', { t: lang === 'tr' ? ep.titleTr : ep.title })) + '</h1>' +
+      '<section class="card"><p>' + esc(lang === 'tr' ? ep.blurbTr : ep.blurb) + '</p><p class="hint">' + esc(t('series_intro_hint')) + '</p>' +
+        (synth ? '' : '<p class="notice">' + esc(t('series_nosound')) + '</p>') +
+        (SR ? '' : '<p class="notice">' + esc(t('notice_nosr')) + '</p>') + '</section>' +
+      '<section class="card"><h2>' + esc(t('series_phrases')) + '</h2><ul class="phr">' + ph + '</ul></section>' +
+      '<button class="primary" id="scGo">' + esc(t('series_start')) + '</button>' +
+      '<div class="row"><button class="ghost" id="scBack">' + esc(t('btn_back')) + '</button></div>'
+    );
+    on('scGo', function () { scene(ep); });
+    on('scBack', home);
+  }
+
+  function scene(ep) {
+    stopAll();
+    flow(true);
+    view = function () { scene(ep); };
+    show(
+      '<p class="eyebrow">' + esc(t('series_ep', { t: lang === 'tr' ? ep.titleTr : ep.title })) + '</p>' +
+      '<div class="stage" id="stage"></div>' +
+      '<div class="subs" id="subs" aria-live="polite"></div>' +
+      '<div class="turn" id="turn"></div>' +
+      '<div class="row"><button class="ghost" id="scQuit">' + esc(t('series_quit')) + '</button></div>'
+    );
+    var reduced = false;
+    try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+    var me = {
+      ep: ep, i: 0, results: [], tries: 0, best: 0, heard: '', dead: false, ttsTimer: null, timer: null, rec: null, spoken: 0,
+      ctl: St.mount($('stage'), { reduced: reduced })
+    };
+    sc = me;
+    on('scQuit', home);
+    beat();
+  }
+
+  function beat() {
+    var me = sc;
+    if (!me || me.dead) return;
+    var b = me.ep.beats[me.i];
+    if (!b) { sceneEnd(); return; }
+    var stage = $('stage');
+    var subs = $('subs');
+    var turn = $('turn');
+    me.tries = 0; me.best = 0; me.heard = ''; me.spoken = 0;
+    if (b.who === 'sherlock') {
+      if (stage) stage.classList.remove('mine');
+      if (turn) turn.innerHTML = '';
+      me.ctl.setMood(b.mood);
+      me.ctl.speaking(true);
+      if (subs) subs.innerHTML = '<div class="who">Sherlock</div><p class="line">' + esc(b.en) + '</p>' + (lang === 'tr' ? '<p class="tr">' + esc(b.tr) + '</p>' : '');
+      speakLine(b.en, true, function () {
+        if (!sc || sc.dead || sc !== me) return;
+        me.ctl.speaking(false);
+        me.timer = setTimeout(function () { me.i++; beat(); }, 380);
+      });
+      return;
+    }
+    // your turn
+    me.ctl.setMood('listen');
+    me.ctl.speaking(false);
+    if (stage) stage.classList.add('mine');
+    if (subs) subs.innerHTML = '<div class="who">' + esc(t('series_you')) + '</div><p class="line">…</p>';
+    yourTurn(b);
+  }
+
+  function sayHtml(b, r) {
+    var hit = {};
+    var miss = {};
+    if (r) { r.hit.forEach(function (w) { hit[w] = true; }); r.miss.forEach(function (w) { miss[w] = true; }); }
+    return b.en.split(/\s+/).map(function (w) {
+      var key = L.normalize(w);
+      var c = r ? (miss[key] ? 'miss' : (hit[key] ? 'hit' : '')) : '';
+      return '<span class="' + c + '">' + esc(w) + '</span>';
+    }).join(' ');
+  }
+
+  function yourTurn(b) {
+    var me = sc;
+    var turn = $('turn');
+    if (!turn) return;
+    var typed = !SR;
+    turn.innerHTML =
+      '<section class="card"><b>🎤 ' + esc(t('series_your_turn')) + '</b>' +
+      '<p class="hint" style="margin:6px 0 0">' + esc(t('series_say_it')) + '</p>' +
+      '<p class="say" id="say">' + sayHtml(b, null) + '</p>' +
+      (lang === 'tr' ? '<p class="hint">' + esc(b.tr) + '</p>' : '') +
+      '<div id="heard" class="transcript" aria-live="polite"></div><div id="verdict"></div>' +
+      (typed ? '<textarea id="scText" placeholder="' + esc(t('series_typed_ph')) + '" aria-label="' + esc(t('series_typed_ph')) + '"></textarea>' : '') +
+      '<div class="row" id="scBtns"></div></section>';
+    function buttons(state) {
+      var h = '<button id="scHear" class="ghost">' + esc(t('series_hear')) + '</button>';
+      if (state === 'ready') {
+        h += typed ? '<button class="primary" id="scSend">' + esc(t('series_send')) + '</button>' : '<button class="primary" id="scMic">' + esc(t('series_mic')) + '</button>';
+        h += '<button class="ghost" id="scSkip">' + esc(t('series_skip')) + '</button>';
+      } else if (state === 'listening') {
+        h += '<button class="primary" id="scStopRec">' + esc(t('series_done')) + '</button>';
+      } else if (state === 'retry') {
+        h += '<button id="scMic">' + esc(typed ? t('series_retry') : t('series_retry')) + '</button><button class="primary" id="scNext">' + esc(t('series_next')) + '</button>';
+      } else {
+        h += '<button class="primary" id="scNext">' + esc(t('series_next')) + '</button>';
+      }
+      $('scBtns').innerHTML = h;
+      on('scHear', function () { if (me.rec) return; speakLine(b.en, false, function () {}); });
+      on('scMic', startListen);
+      on('scStopRec', function () { if (me.rec) { try { me.rec.stop(); } catch (e) {} } });
+      on('scSkip', function () { finish(); });
+      on('scNext', function () { finish(); });
+      on('scSend', function () {
+        var ta = $('scText');
+        evaluate(ta ? ta.value : '');
+      });
+    }
+    function finish() {
+      if (!sc || sc !== me) return;
+      if (me.rec) { try { me.rec.onend = null; me.rec.abort(); } catch (e) {} me.rec = null; }
+      if (synth) { try { synth.cancel(); } catch (e) {} }
+      me.results.push({ pct: me.best, spoken: me.spoken, miss: me.lastMiss || [] });
+      me.i++;
+      beat();
+    }
+    function evaluate(text) {
+      if (!sc || sc !== me) return;
+      me.rec = null;
+      me.tries++;
+      var r = Se.scoreLine(b.en, text);
+      if (r.pct >= me.best) { me.best = r.pct; me.lastMiss = r.miss; me.spoken = L.countWords(text); }
+      var say = $('say');
+      if (say) say.innerHTML = sayHtml(b, r);
+      var hd = $('heard');
+      if (hd) hd.textContent = text ? '“' + text + '”' : '';
+      var vd = $('verdict');
+      if (vd) vd.innerHTML = '<p class="verdict">' + esc(t('series_v' + r.stars)) + ' <small>%' + r.pct + '</small></p>' +
+        (r.miss.length && !r.ok ? '<p class="hint">' + esc(t('series_missed')) + ' ' + esc(r.miss.join(', ')) + '</p>' : '');
+      if (r.ok) {
+        me.ctl.setMood('happy');
+        me.ctl.nod();
+        buttons('done');
+        me.timer = setTimeout(function () { if (sc === me && !me.dead) finish(); }, 1700);
+      } else {
+        me.ctl.setMood('think');
+        buttons(me.tries >= 2 ? 'done' : 'retry');
+      }
+    }
+    function startListen() {
+      if (!sc || sc !== me) return;
+      if (synth) { try { synth.cancel(); } catch (e) {} }
+      var rec;
+      try { rec = new SR(); } catch (e) { typed = true; yourTurn(b); return; }
+      me.rec = rec;
+      rec.lang = 'en-US';
+      rec.continuous = false;
+      rec.interimResults = true;
+      var text = '';
+      var got = false;
+      rec.onresult = function (e) {
+        var s1 = '';
+        for (var k = 0; k < e.results.length; k++) s1 += e.results[k][0].transcript + ' ';
+        text = s1.trim();
+        got = true;
+        var hd = $('heard');
+        if (hd) hd.textContent = text;
+      };
+      rec.onerror = function (e) {
+        var code = e && e.error;
+        if (code === 'not-allowed' || code === 'service-not-allowed' || code === 'audio-capture' || code === 'network') {
+          if (me.rec === rec) { me.rec = null; typed = true; yourTurn(b); }
+        }
+      };
+      rec.onend = function () {
+        if (me.rec !== rec) return;
+        me.rec = null;
+        if (got) evaluate(text); else { var hd = $('heard'); if (hd) hd.textContent = ''; buttons('ready'); }
+      };
+      try {
+        rec.start();
+        var hd0 = $('heard');
+        if (hd0) hd0.innerHTML = '<span class="ghost">' + esc(t('series_listening')) + '</span>';
+        buttons('listening');
+        me.timer = setTimeout(function () { if (me.rec === rec) { try { rec.stop(); } catch (e) {} } }, 12000);
+      } catch (e) { me.rec = null; typed = true; yourTurn(b); }
+    }
+    buttons('ready');
+    if (!typed) {
+      // small pause so Sherlock's last word is not picked up, then listen straight away
+      me.timer = setTimeout(function () { if (sc === me && !me.dead && !me.rec) startListen(); }, 450);
+    }
+  }
+
+  function sceneEnd() {
+    var me = sc;
+    if (!me) return;
+    var ep = me.ep;
+    var results = me.results;
+    var sum = Se.summarize(results);
+    sceneStop();
+    stopAll();
+    flow(true);
+    testId = 'roleplay';
+    var info = commit({ words: Math.max(sum.spoken, 1), hitCount: sum.passed });
+    var miss = [];
+    results.forEach(function (r) { (r.miss || []).forEach(function (w) { if (w.length >= 4 && miss.indexOf(w) === -1) miss.push(w); }); });
+    var added = 0;
+    if (miss.length) {
+      var before = vocabList();
+      var after = N.add(before, miss.slice(0, 5));
+      added = after.filter(function (w) { return before.indexOf(w) === -1; }).length;
+      store.set('vocab', N.serialize(after));
+    }
+    var stars = '';
+    for (var k = 0; k < 3; k++) stars += k < sum.stars ? '⭐' : '☆';
+    var ph = ep.phrases.map(function (p) { return '<li><b>' + esc(p.en) + '</b><span>' + esc(lang === 'tr' ? p.tr : '') + '</span></li>'; }).join('');
+    show(
+      '<p class="eyebrow">' + esc(t('series_ep', { t: lang === 'tr' ? ep.titleTr : ep.title })) + '</p>' +
+      '<h1>' + esc(t('series_end_h')) + '</h1>' +
+      '<section class="card center"><p class="stars" aria-hidden="true">' + stars + '</p>' +
+        '<p>' + esc(t('series_end_stats', { p: sum.passed, n: sum.total, a: sum.avg })) + '</p></section>' +
+      rewardsHtml({ info: info, vocabAdded: added }) +
+      '<section class="card"><h2>' + esc(t('series_cliff')) + '</h2><p>' + esc(lang === 'tr' ? ep.cliffTr : ep.cliff) + '</p></section>' +
+      '<section class="card"><h2>' + esc(t('series_phrases')) + '</h2><ul class="phr">' + ph + '</ul></section>' +
+      '<button class="primary" id="scAgain">' + esc(t('series_replay')) + '</button>' +
+      '<div class="row"><button class="ghost" id="scHome">' + esc(t('btn_home')) + '</button></div>'
+    );
+    paintChrome();
+    on('scAgain', function () { scene(ep); });
+    on('scHome', home);
+  }
+
   function registerSW() {
     try {
       if ('serviceWorker' in navigator && /^https?:$/.test(window.location.protocol)) {
