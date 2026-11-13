@@ -1260,10 +1260,30 @@
     }
     return en.filter(function (v) { return /en[-_]US/i.test(v.lang) && !/male\b/i.test(v.name); })[0] || en[0] || null;
   }
+  var curAudio = null;
+  function stopAudio() { if (curAudio) { try { curAudio.onended = null; curAudio.onerror = null; curAudio.pause(); } catch (e) {} curAudio = null; } }
   function speakLine(text, male, done) {
     var fired = false;
     function fin() { if (fired) return; fired = true; if (sc && sc.ttsTimer) { clearTimeout(sc.ttsTimer); sc.ttsTimer = null; } done(); }
     var est = St.estimateMs(text);
+    stopAudio();
+    // Sherlock: use the pre-generated voice line when there is one; otherwise fall through to the browser voice.
+    var clip = male && window.SHERLOCK_AUDIO && window.SHERLOCK_AUDIO[text];
+    if (clip && window.Audio) {
+      try {
+        var a = new window.Audio(clip);
+        curAudio = a;
+        a.onended = fin;
+        a.onerror = function () { stopAudio(); speakTts(); };
+        var pr = a.play();
+        if (pr && pr.catch) pr.catch(function () { stopAudio(); speakTts(); });
+        sc.ttsTimer = setTimeout(fin, est * 2 + 4000);
+        return;
+      } catch (e) { stopAudio(); }
+    }
+    speakTts();
+    function speakTts() {
+    if (sc && sc.ttsTimer) { clearTimeout(sc.ttsTimer); sc.ttsTimer = null; }
     if (!synth || !window.SpeechSynthesisUtterance) {
       sc.ttsTimer = setTimeout(fin, est);
       return;
@@ -1281,6 +1301,7 @@
       synth.speak(u);
       sc.ttsTimer = setTimeout(fin, est * 1.8 + 1500);
     } catch (e) { sc.ttsTimer = setTimeout(fin, est); }
+    }
   }
 
   function sceneStop() {
@@ -1292,6 +1313,7 @@
     if (s0.timer) clearTimeout(s0.timer);
     if (s0.rec) { try { s0.rec.onend = null; s0.rec.onresult = null; s0.rec.onerror = null; s0.rec.abort(); } catch (e) {} }
     if (s0.ctl) s0.ctl.destroy();
+    stopAudio();
     if (synth) { try { synth.cancel(); } catch (e) {} }
   }
 

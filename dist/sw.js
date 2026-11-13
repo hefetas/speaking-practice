@@ -1,5 +1,5 @@
 /* Offline support. Network first so updates always win; cache is only a fallback. */
-const VERSION = 'konus-6e75e3bb';
+const VERSION = 'konus-5c574fe1';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {

@@ -15,7 +15,17 @@ const js = ['logic.js', 'progress.js', 'analysis.js', 'challenge.js', 'backup.js
   .join('\n;\n')
   .replace(/<\/script/gi, '<\\/script');
 
-const inline = 'window.CONFIG=' + JSON.stringify(config).replace(/</g, '\\u003c') + ';\n;\n' + js;
+// Pre-generated Sherlock voice lines (app/audio/sherlock.json -> data: URIs). Missing files are skipped;
+// the app falls back to the browser voice for any line without audio.
+const audio = {};
+try {
+  JSON.parse(read('audio/sherlock.json')).forEach((e) => {
+    const f = path.join(app, 'audio', e.file);
+    if (fs.existsSync(f)) audio[e.text] = 'data:audio/mpeg;base64,' + fs.readFileSync(f).toString('base64');
+  });
+} catch (e) { /* no audio manifest */ }
+
+const inline = 'window.SHERLOCK_AUDIO=' + JSON.stringify(audio) + ';\n;\nwindow.CONFIG=' + JSON.stringify(config).replace(/</g, '\\u003c') + ';\n;\n' + js;
 
 const html = read('index.src.html')
   .replace('<!--ROBOTS-->', launch ? 'index,follow' : 'noindex,nofollow')
