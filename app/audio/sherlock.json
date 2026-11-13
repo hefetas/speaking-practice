@@ -1,3 +1,30 @@
 [
-  { "file": "sherlock-01.mp3", "text": "Good morning! Do not touch anything. We have a case!" }
+  {
+    "file": "sherlock-01.mp3",
+    "text": "Good morning! Do not touch anything. We have a case!"
+  },
+  {
+    "file": "sherlock-02.mp3",
+    "text": "Someone ate my strawberry yogurt last night. It was the last one."
+  },
+  {
+    "file": "sherlock-03.mp3",
+    "text": "Impossible. I never forget yogurt. Now, look at this spoon in the sink."
+  },
+  {
+    "file": "sherlock-04.mp3",
+    "text": "It is clean, but there is a small pink drop on it. Someone washed it in a hurry."
+  },
+  {
+    "file": "sherlock-05.mp3",
+    "text": "Interesting. And where were you at midnight?"
+  },
+  {
+    "file": "sherlock-06.mp3",
+    "text": "Hmm. Then why is there a pink spot on your sleeve?"
+  },
+  {
+    "file": "sherlock-07.mp3",
+    "text": "We will see. Tomorrow we visit the neighbor. Bring your key!"
+  }
 ]
