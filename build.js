@@ -10,7 +10,7 @@ const launch = process.env.LAUNCH === '1';
 const config = Object.assign(JSON.parse(read('config.json')), { launch: launch });
 
 const js = ['logic.js', 'progress.js', 'analysis.js', 'challenge.js', 'backup.js', 'notebook.js', 'ics.js',
-  'daily-more-1.js', 'daily-more-2.js', 'ielts.js', 'practice-bank.js', 'content.js', 'series.js', 'stage.js', 'i18n.js', 'legal.js', 'ui.js']
+  'daily-more-1.js', 'daily-more-2.js', 'ielts.js', 'practice-bank.js', 'content.js', 'series.js', 'stage.js', 'stage3d.js', 'i18n.js', 'legal.js', 'ui.js']
   .map(read)
   .join('\n;\n')
   .replace(/<\/script/gi, '<\\/script');

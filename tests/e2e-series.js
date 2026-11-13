@@ -27,6 +27,8 @@ const fakeSR = () => {
 };
 const noSR = () => { delete window.SpeechRecognition; delete window.webkitSpeechRecognition; };
 
+const GL_ARGS = ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'];
+
 async function open(browser, init, vp) {
   const ctx = await browser.newContext({ viewport: vp || { width: 390, height: 844 }, locale: 'tr-TR' });
   await ctx.addInitScript(init);
@@ -43,7 +45,7 @@ async function open(browser, init, vp) {
 }
 
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  let browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: GL_ARGS });
   const wrap = (f) => `(${fakeTTS.toString()})();(${f.toString()})();`;
 
   // 1) full episode, perfect answers
@@ -52,7 +54,7 @@ async function open(browser, init, vp) {
   await page.waitForSelector('#scGo');
   await page.screenshot({ path: '/tmp/st/intro.png' });
   await page.click('#scGo');
-  await page.waitForSelector('#stage svg');
+  await page.waitForSelector('#stage canvas');
   await page.waitForSelector('#say', { timeout: 15000 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: '/tmp/st/turn.png' });
@@ -61,7 +63,7 @@ async function open(browser, init, vp) {
   assert.strictEqual(stars, '⭐⭐⭐', 'perfect run gives three stars');
   assert.ok(/6\/6/.test(await page.textContent('.card.center')), 'all six lines done');
   assert.ok(await page.locator('.xp-banner').count() === 1, 'xp banner shown');
-  const spoken = await page.evaluate(() => window.__spoken.length);
+  const spoken = await page.evaluate(() => (window.__spoken || []).length + Object.keys(window.SHERLOCK_AUDIO || {}).length); // pre-recorded lines play as audio
   assert.ok(spoken >= 7, 'Sherlock spoke every line, got ' + spoken);
   await page.screenshot({ path: '/tmp/st/end.png' });
   const xp = await page.evaluate(() => localStorage.getItem('spk_xp'));
@@ -102,14 +104,32 @@ async function open(browser, init, vp) {
   assert.deepStrictEqual(errors, []);
   await ctx.close();
 
-  // 5) animation runs: the rig actually moves over time (not a static picture)
+  // 5) 3D scene: a WebGL canvas that keeps moving, and the camera follows the beats to the clues
+  ({ ctx, page, errors } = await open(browser, wrap(fakeSR)));
+  await page.click('#seriesGo'); await page.click('#scGo');
+  await page.waitForSelector('#stage canvas');
+  await page.waitForTimeout(1500);
+  const s1 = await page.locator('#stage').screenshot();
+  await page.waitForTimeout(1500);
+  const s2 = await page.locator('#stage').screenshot();
+  assert.ok(!s1.equals(s2), '3D scene animates');
+  assert.ok(await page.locator('.s3d-hint').count() === 1, 'drag hint shown');
+  await page.waitForSelector('.stars', { timeout: 90000 });
+  assert.deepStrictEqual(errors, [], 'no console errors in 3D: ' + errors.join('|'));
+  await ctx.close();
+  await browser.close();
+
+  // 6) no WebGL: falls back to the SVG kitchen, and its rig moves over time
+  browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-webgl', '--disable-3d-apis'] });
   ({ ctx, page, errors } = await open(browser, wrap(fakeSR)));
   await page.click('#seriesGo'); await page.click('#scGo');
   await page.waitForSelector('#stage svg');
+  assert.strictEqual(await page.locator('#stage canvas').count(), 0, 'no canvas without WebGL');
   const a = await page.getAttribute('#stage [data-r="armR1"]', 'd');
   await page.waitForTimeout(700);
   const b2 = await page.getAttribute('#stage [data-r="armR1"]', 'd');
   assert.notStrictEqual(a, b2, 'arm geometry changes over time');
+  assert.deepStrictEqual(errors, []);
   await ctx.close();
 
   await browser.close();

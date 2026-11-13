@@ -12,6 +12,7 @@
   var I = window.I18N;
   var Se = window.Series;
   var St = window.Stage;
+  var St3 = window.Stage3D;
   var G = window.Legal;
   var CFG = window.CONFIG || {};
   var screen = document.getElementById('screen');
@@ -1351,8 +1352,13 @@
     try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
     var me = {
       ep: ep, i: 0, results: [], tries: 0, best: 0, heard: '', dead: false, ttsTimer: null, timer: null, rec: null, spoken: 0,
-      ctl: St.mount($('stage'), { reduced: reduced })
+      ctl: null
     };
+    // 3D crime scene when WebGL works; otherwise the lightweight SVG kitchen.
+    if (St3 && St3.supported()) {
+      try { me.ctl = St3.mount($('stage'), { reduced: reduced, hint: t('series_drag'), label: 'Sherlock' }); } catch (e) { me.ctl = null; }
+    }
+    if (!me.ctl) me.ctl = St.mount($('stage'), { reduced: reduced });
     sc = me;
     on('scQuit', home);
     beat();
@@ -1367,6 +1373,7 @@
     var subs = $('subs');
     var turn = $('turn');
     me.tries = 0; me.best = 0; me.heard = ''; me.spoken = 0;
+    if (b.shot && me.ctl.shot) me.ctl.shot(b.shot);
     if (b.who === 'sherlock') {
       if (stage) stage.classList.remove('mine');
       if (turn) turn.innerHTML = '';

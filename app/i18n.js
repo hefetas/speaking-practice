@@ -151,6 +151,7 @@
     ['series_intro_hint', 'Ekran Sherlock’a bakıyor, sen onun arkadaşısın. Sıra sende olunca ekrandaki repliği yüksek sesle söyle. Takılırsan “Dinle” ile nasıl söylendiğini duyabilirsin.', 'The screen looks at Sherlock; you are his friend. When it is your turn, say the line on the screen out loud. If you get stuck, press “Hear it” to listen first.'],
     ['series_phrases', 'Bu bölümün kalıpları', 'Phrases from this episode'],
     ['series_start', 'Başla', 'Start'],
+    ['series_drag', '↔ Sürükle: olay yerine bak', '↔ Drag to look around the scene'],
     ['series_you', 'Sen', 'You'],
     ['series_your_turn', 'Sıra sende', 'Your turn'],
     ['series_say_it', 'Şunu söyle:', 'Say this:'],

@@ -7,8 +7,9 @@
 
   // Original scripts. The characters (Sherlock Holmes, his friend) come from Arthur Conan Doyle's
   // public-domain stories; every line of dialogue, the plot and all artwork are our own.
-  function S(mood, en, tr) { return { who: 'sherlock', mood: mood, en: en, tr: tr }; }
-  function Y(en, tr) { return { who: 'you', en: en, tr: tr }; }
+  // shot: where the 3D camera goes for this beat (see SHOTS in stage3d.js); the SVG stage ignores it.
+  function S(mood, en, tr, shot) { return { who: 'sherlock', mood: mood, en: en, tr: tr, shot: shot }; }
+  function Y(en, tr, shot) { return { who: 'you', en: en, tr: tr, shot: shot }; }
 
   var EPISODES = [
     {
@@ -28,19 +29,19 @@
         { en: 'I promise', tr: 'söz veriyorum' }
       ],
       beats: [
-        S('excited', 'Good morning! Do not touch anything. We have a case!', 'Günaydın! Hiçbir şeye dokunma. Bir vakamız var!'),
-        Y('A case? What happened?', 'Bir vaka mı? Ne oldu?'),
-        S('angry', 'Someone ate my strawberry yogurt last night. It was the last one.', 'Dün gece biri çilekli yoğurdumu yedi. Sonuncusuydu.'),
-        Y('Maybe you ate it yourself and forgot.', 'Belki kendin yedin ve unuttun.'),
-        S('think', 'Impossible. I never forget yogurt. Now, look at this spoon in the sink.', 'İmkânsız. Yoğurdu asla unutmam. Şimdi lavabodaki şu kaşığa bak.'),
-        Y('It is only a spoon. Why is it important?', 'Sadece bir kaşık. Neden önemli?'),
-        S('think', 'It is clean, but there is a small pink drop on it. Someone washed it in a hurry.', 'Temiz ama üstünde küçük pembe bir damla var. Biri aceleyle yıkamış.'),
-        Y('Maybe it was our neighbor. She has a spare key.', 'Belki komşumuzdu. Onda yedek anahtar var.'),
-        S('suspicious', 'Interesting. And where were you at midnight?', 'İlginç. Peki sen gece yarısı neredeydin?'),
-        Y('I was asleep. I went to bed at ten, I promise.', 'Uyuyordum. Saat ona yattım, söz veriyorum.'),
-        S('shock', 'Hmm. Then why is there a pink spot on your sleeve?', 'Hmm. O zaman kolunda neden pembe bir leke var?'),
-        Y('That is jam! It is not yogurt!', 'O reçel! Yoğurt değil!'),
-        S('happy', 'We will see. Tomorrow we visit the neighbor. Bring your key!', 'Göreceğiz. Yarın komşuyu ziyaret ediyoruz. Anahtarını getir!')
+        S('excited', 'Good morning! Do not touch anything. We have a case!', 'Günaydın! Hiçbir şeye dokunma. Bir vakamız var!', 'door'),
+        Y('A case? What happened?', 'Bir vaka mı? Ne oldu?', 'door'),
+        S('angry', 'Someone ate my strawberry yogurt last night. It was the last one.', 'Dün gece biri çilekli yoğurdumu yedi. Sonuncusuydu.', 'fridge'),
+        Y('Maybe you ate it yourself and forgot.', 'Belki kendin yedin ve unuttun.', 'fridge'),
+        S('think', 'Impossible. I never forget yogurt. Now, look at this spoon in the sink.', 'İmkânsız. Yoğurdu asla unutmam. Şimdi lavabodaki şu kaşığa bak.', 'sink'),
+        Y('It is only a spoon. Why is it important?', 'Sadece bir kaşık. Neden önemli?', 'sink'),
+        S('think', 'It is clean, but there is a small pink drop on it. Someone washed it in a hurry.', 'Temiz ama üstünde küçük pembe bir damla var. Biri aceleyle yıkamış.', 'spoon'),
+        Y('Maybe it was our neighbor. She has a spare key.', 'Belki komşumuzdu. Onda yedek anahtar var.', 'keys'),
+        S('suspicious', 'Interesting. And where were you at midnight?', 'İlginç. Peki sen gece yarısı neredeydin?', 'close'),
+        Y('I was asleep. I went to bed at ten, I promise.', 'Uyuyordum. Saat ona yattım, söz veriyorum.', 'close'),
+        S('shock', 'Hmm. Then why is there a pink spot on your sleeve?', 'Hmm. O zaman kolunda neden pembe bir leke var?', 'sleeve'),
+        Y('That is jam! It is not yogurt!', 'O reçel! Yoğurt değil!', 'sleeve'),
+        S('happy', 'We will see. Tomorrow we visit the neighbor. Bring your key!', 'Göreceğiz. Yarın komşuyu ziyaret ediyoruz. Anahtarını getir!', 'end')
       ]
     }
   ];
